@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三只松鼠客服排班系统</title>
+<style>/* === 三只松鼠客服排班系统 v5 === */
+:root{
+  --primary:#FF6A00;--primary-hover:#E85D00;--primary2:#FF8C42;--primary-light:#FFF3E6;
+  --accent:#FFD700;--accent2:#FFB347;
+  --bg:#F6F7FA;--card:#FFFFFF;--border:#E8ECF1;--text:#1A1A2E;--text2:#4A4A6A;
+  --muted:#8B8FA3;--danger:#E74C3C;--success:#2ECC71;--warn:#F39C12;--info:#3498DB;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 6px 24px rgba(0,0,0,.10);
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;
+  /* Font scale */
+  --fs-title:20px;--fs-section:15px;--fs-body:13px;--fs-sm:12px;--fs-xs:11px;
+  --fw-bold:700;--fw-semibold:600;--fw-normal:500;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;}
+
+/* Squirrel FAB */
+.squirrel-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 18px rgba(255,106,0,.35);z-index:999;cursor:pointer;opacity:.9;transition:all .2s;border:none;}
+.squirrel-fab:hover{transform:scale(1.12);opacity:1;box-shadow:0 6px 24px rgba(255,106,0,.45);}
+.squirrel-fab::after{content:attr(data-tip);position:absolute;right:64px;top:50%;transform:translateY(-50%);background:#1A1A2E;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+.squirrel-fab:hover::after{opacity:1;}
+
+/* Header */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:80;box-shadow:var(--shadow-sm);}
+.brand{display:flex;align-items:center;gap:10px;font-size:var(--fs-body);font-weight:var(--fw-bold);}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;overflow:hidden;flex-shrink:0;}
+.brand .logo::after{content:'';position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:var(--accent);border-radius:50%;opacity:.6;}
+.brand .title{color:var(--text);}
+.brand .title span{color:var(--primary);}
+.global-ctls{display:flex;align-items:center;gap:10px;}
+.global-ctls select,.global-ctls input{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);font-size:var(--fs-body);color:var(--text);min-width:110px;transition:border-color .15s;}
+.global-ctls select:focus,.global-ctls input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,106,0,.1);}
+
+/* Tabs */
+.tab-nav{display:flex;gap:0;padding:0 28px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;}
+.tab-nav button{padding:13px 20px;border:none;background:none;font-size:var(--fs-body);color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;font-weight:var(--fw-normal);}
+.tab-nav button:hover{color:var(--primary);background:var(--primary-light);}
+.tab-nav button.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:var(--fw-bold);background:var(--primary-light);}
+
+/* Main content */
+.main{padding:20px 28px;max-width:1440px;margin:0 auto;}
+.panel{display:none;animation:fadeIn .2s ease;}
+.panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* Hero banner */
+.hero{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-radius:var(--radius-lg);padding:24px 30px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;position:relative;overflow:hidden;}
+.hero::after{content:'';position:absolute;right:-40px;top:-40px;width:160px;height:160px;background:rgba(255,255,255,.06);border-radius:50%;}
+.hero::before{content:'';position:absolute;right:80px;bottom:-30px;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;}
+.hero>*{position:relative;z-index:1;}
+.hero h2{margin:0;font-size:var(--fs-title);font-weight:800;}
+.hero .hero-stats{display:flex;gap:20px;font-size:var(--fs-body);}
+.hero .badge{padding:4px 12px;border-radius:20px;font-size:var(--fs-sm);font-weight:var(--fw-semibold);display:inline-block;}
+.hero .badge.locked{background:rgba(255,255,255,.25);}
+.hero .badge.unlocked{background:rgba(255,255,255,.15);}
+.hero .vcount{cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.hero .vcount:hover{opacity:.8;}
+.progress-bar{height:4px;background:rgba(255,255,255,.25);border-radius:2px;margin-top:6px;overflow:hidden;}
+.progress-bar .fill{height:100%;background:rgba(255,255,255,.8);border-radius:2px;transition:width .4s ease;}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border);transition:box-shadow .15s;}
+.card:hover{box-shadow:var(--shadow);}
+.card h3{font-size:var(--fs-section);font-weight:var(--fw-bold);margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:6px;}
+.card .subtitle{font-size:var(--fs-sm);color:var(--muted);font-weight:400;margin-left:auto;}
+
+/* Buttons */
+.btn{padding:8px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);cursor:pointer;font-size:var(--fs-body);transition:all .12s;display:inline-flex;align-items:center;gap:4px;font-weight:var(--fw-semibold);white-space:nowrap;}
+.btn:hover{opacity:.88;box-shadow:var(--shadow-sm);transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.5;pointer-events:none;cursor:not-allowed;}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-color:transparent;}
+.btn-primary:hover{box-shadow:0 2px 10px rgba(255,106,0,.35);}
+.btn-primary.loading{position:relative;color:transparent;}
+.btn-primary.loading::after{content:'';position:absolute;inset:4px auto auto 50%;width:16px;height:16px;margin-left:-8px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn-outline{border-color:var(--primary);color:var(--primary);}
+.btn-danger{color:var(--danger);border-color:var(--danger);}
+.btn-danger:hover{background:var(--danger);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:var(--fs-sm);}
+.btn-xs{padding:3px 8px;font-size:var(--fs-xs);}
+.btn-text{padding:4px 8px;background:none;border:none;cursor:pointer;font-size:var(--fs-sm);color:var(--primary);font-weight:var(--fw-semibold);}
+.btn-text.danger{color:var(--danger);}
+.btn-text:hover{text-decoration:underline;}
+.btn-group{display:flex;gap:6px;align-items:center;}
+
+/* Schedule grid */
+.schedule-grid{overflow-x:auto;margin-top:8px;}
+.schedule-grid table{border-collapse:collapse;width:max-content;min-width:100%;font-size:var(--fs-sm);}
+.schedule-grid th,.schedule-grid td{border:1px solid #eef1f5;padding:4px 6px;text-align:center;min-width:34px;height:34px;}
+.schedule-grid th{background:#fafbfd;font-weight:var(--fw-semibold);position:sticky;top:0;z-index:2;font-size:var(--fs-xs);color:var(--muted);}
+.schedule-grid th.sortable{cursor:pointer;}
+.schedule-grid th.sortable:hover{background:var(--primary-light);}
+.schedule-grid th.sticky-col,.schedule-grid td.sticky-col{position:sticky;left:0;z-index:3;background:var(--card);border-right:2px solid var(--border);min-width:80px;text-align:left;padding-left:10px;}
+.schedule-grid th.sticky-col{z-index:4;}
+.schedule-grid th.weekend{background:#F5F0F0;color:#C0392B;}
+.schedule-grid th.holiday{background:#FFF0E6;color:var(--primary);}
+.schedule-grid .shift-cell{cursor:pointer;transition:all .15s;font-weight:700;font-size:var(--fs-xs);position:relative;border-radius:2px;}
+.schedule-grid .shift-cell:hover{filter:brightness(.88);box-shadow:inset 0 0 0 2px rgba(0,0,0,.15);transform:scale(1.06);z-index:1;}
+.schedule-grid .shift-cell.violation{animation:pulse 1.5s infinite;}
+.schedule-grid .shift-cell.violation::after{content:'!';position:absolute;top:1px;right:3px;width:14px;height:14px;border-radius:50%;background:var(--danger);color:#fff;font-size:9px;line-height:14px;font-weight:700;}
+@keyframes pulse{0%,100%{box-shadow:inset 0 0 0 1px var(--danger);}50%{box-shadow:inset 0 0 0 2px var(--danger);}}
+
+/* Shift legend */
+.shift-legend{display:flex;gap:16px;align-items:center;padding:8px 0;flex-wrap:wrap;}
+.shift-legend .item{display:flex;align-items:center;gap:4px;font-size:var(--fs-sm);}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.filter-bar select,.filter-bar input{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:var(--fs-sm);background:var(--card);}
+
+/* Tables */
+table.data{width:100%;border-collapse:collapse;font-size:var(--fs-body);}
+table.data th,table.data td{border:1px solid var(--border);padding:8px 12px;text-align:center;}
+table.data th{background:#fafbfd;font-weight:var(--fw-semibold);color:var(--muted);text-transform:uppercase;font-size:var(--fs-xs);letter-spacing:.5px;}
+table.data th.sortable{cursor:pointer;user-select:none;}
+table.data th.sortable:hover{background:var(--primary-light);color:var(--primary);}
+table.data tr:hover{background:var(--primary-light);}
+table.data tr:nth-child(even){background:#fafbfd;}
+table.data tr:nth-child(even):hover{background:var(--primary-light);}
+
+/* Forms */
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:var(--fs-sm);color:var(--muted);margin-bottom:5px;font-weight:var(--fw-semibold);}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:var(--fs-body);transition:border-color .15s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,106,0,.1);}
+.form-group textarea{resize:vertical;min-height:60px;}
+.form-hint{font-size:var(--fs-xs);color:var(--muted);margin-top:3px;}
+.pwd-wrap{position:relative;display:inline-flex;}
+.pwd-wrap input{padding-right:36px;}
+.pwd-wrap .eye-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:2px 6px;}
+.pwd-wrap .eye-btn:hover{color:var(--primary);}
+
+/* Tooltip */
+[data-tip]{position:relative;}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1A1A2E;color:#fff;padding:6px 12px;border-radius:6px;font-size:var(--fs-xs);white-space:nowrap;z-index:999;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.has-error input,.has-error select{border-color:var(--danger)!important;background:#FFF5F5;animation:shake .3s;}
+.has-error .form-error{display:block;}
+.form-error{font-size:var(--fs-xs);color:var(--danger);margin-top:3px;display:none;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(3px);}
+.modal{background:var(--card);border-radius:var(--radius-lg);padding:28px;width:460px;max-width:94vw;max-height:82vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:modalIn .2s ease;}
+.modal.wide{width:640px;}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal h3{font-size:18px;margin-bottom:16px;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+
+/* Stats */
+.stats-row{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.stat-card{flex:1;min-width:140px;padding:16px 20px;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;text-align:center;box-shadow:var(--shadow-sm);}
+.stat-card .val{font-size:24px;font-weight:800;}
+.stat-card .lbl{font-size:var(--fs-sm);opacity:.85;margin-top:4px;}
+.stat-card.c3{background:linear-gradient(135deg,#2ECC71,#27AE60);}
+.stat-card.c4{background:linear-gradient(135deg,#3498DB,#2980B9);}
+
+/* Rule cards */
+.mode-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.mode-card{border:2px solid var(--border);border-radius:var(--radius);padding:16px 20px;cursor:pointer;transition:all .15s;flex:1;min-width:180px;text-align:center;background:var(--card);}
+.mode-card:hover{border-color:var(--primary);box-shadow:var(--shadow);transform:translateY(-2px);}
+.mode-card.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 4px rgba(255,106,0,.12);font-weight:var(--fw-bold);}
+.mode-card.disabled{opacity:.55;filter:grayscale(.3);}
+.mode-card.disabled .desc,.mode-card.disabled .badge{opacity:.9;color:var(--text2);}
+.mode-card .icon{font-size:26px;display:block;margin-bottom:6px;}
+.mode-card .label{font-weight:700;font-size:14px;}
+.mode-card .desc{font-size:var(--fs-xs);color:var(--muted);margin-top:4px;}
+.mode-card .badge{font-size:10px;padding:3px 8px;border-radius:10px;display:inline-block;margin-top:6px;font-weight:var(--fw-semibold);}
+.mode-card .badge.ok{background:#E8F8F5;color:#27AE60;}
+.mode-card .badge.no{background:#FFF0E6;color:var(--primary);}
+
+/* Rule inputs */
+.rule-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end;}
+.rule-row label{font-size:var(--fs-xs);color:var(--muted);display:flex;flex-direction:column;gap:4px;font-weight:var(--fw-semibold);}
+.rule-row input,.rule-row select{width:100px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .15s;}
+.rule-row input:focus{border-color:var(--primary);}
+
+/* Chat */
+.chat-box{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);}
+.chat-msgs{padding:16px;min-height:320px;max-height:480px;overflow-y:auto;background:#fafbfd;}
+.chat-welcome{text-align:center;padding:20px;color:var(--muted);font-size:var(--fs-body);}
+.chat-welcome .sq-icon{font-size:36px;display:block;margin-bottom:10px;}
+.chat-msg{margin-bottom:12px;padding:9px 14px;border-radius:var(--radius-sm);font-size:var(--fs-body);max-width:85%;line-height:1.6;position:relative;}
+.chat-msg.user{background:var(--primary-light);margin-left:auto;border-left:3px solid var(--primary);}
+.chat-msg.assistant{background:#E8F8F5;border-left:3px solid #27AE60;}
+.chat-msg.system{background:#FEF9E7;font-size:var(--fs-sm);border-left:3px solid #F39C12;}
+.chat-msg .copy-btn{position:absolute;top:4px;right:6px;font-size:11px;cursor:pointer;opacity:0;transition:opacity .15s;background:none;border:none;color:var(--muted);}
+.chat-msg:hover .copy-btn{opacity:1;}
+.chat-status{display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);}
+.chat-status .tag{font-size:var(--fs-xs);}
+.quick-cmds{display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.quick-cmd{padding:4px 14px;border-radius:14px;border:1px solid var(--border);background:#FFF8F2;font-size:var(--fs-sm);cursor:pointer;transition:all .12s;color:var(--primary);font-weight:var(--fw-semibold);}
+.quick-cmd:hover{background:var(--primary-light);border-color:var(--primary);transform:translateY(-1px);}
+.quick-cmd.loading{opacity:.6;pointer-events:none;}
+.chat-input-row{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--card);align-items:center;}
+.chat-input-row input{flex:1;padding:9px 14px;border:1px solid var(--border);border-radius:20px;font-size:var(--fs-body);}
+.chat-input-row input:focus{outline:none;border-color:var(--primary);}
+
+/* Charts */
+.chart-container{position:relative;width:100%;height:230px;margin:8px 0;}
+.chart-container canvas{width:100%;height:100%;}
+.chart-container.large{height:280px;}
+
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:var(--radius-sm);z-index:2000;font-size:var(--fs-body);font-weight:var(--fw-semibold);box-shadow:var(--shadow-lg);animation:toastIn .25s ease;pointer-events:none;}
+.toast.success{background:#2ECC71;color:#fff;}
+.toast.warn{background:#F39C12;color:#fff;}
+.toast.error{background:#E74C3C;color:#fff;}
+.toast.info{background:var(--primary);color:#fff;}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+/* Confirm / Violation */
+.confirm-dialog{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1500;}
+.confirm-dialog .dialog-box{background:var(--card);border-radius:var(--radius-lg);padding:24px;max-width:380px;width:90%;text-align:center;box-shadow:var(--shadow-lg);}
+.confirm-dialog .dialog-box p{margin:12px 0;font-size:var(--fs-body);}
+.violation-detail{max-height:50vh;overflow-y:auto;}
+.violation-item{display:flex;align-items:center;gap:8px;padding:8px 14px;margin:3px 0;background:#FFF5F5;border-radius:6px;font-size:var(--fs-sm);cursor:pointer;transition:background .12s;}
+.violation-item:hover{background:#FFE8E8;transform:translateX(2px);}
+.violation-item .v-emp{font-weight:var(--fw-bold);min-width:60px;}
+.violation-item .v-date{color:var(--muted);}
+.violation-item .v-rule{font-weight:var(--fw-bold);color:var(--danger);min-width:40px;}
+
+/* Batch select */
+.batch-bar{display:none;align-items:center;gap:10px;padding:8px 14px;background:var(--primary-light);border:1px solid var(--primary);border-radius:var(--radius);margin-bottom:10px;font-size:var(--fs-sm);}
+.batch-bar.show{display:flex;}
+.batch-bar span{font-weight:var(--fw-semibold);}
+
+/* Misc */
+.empty-state{color:var(--muted);font-size:var(--fs-body);padding:40px 20px;text-align:center;}
+.empty-state .sq-icon{font-size:40px;display:block;margin-bottom:10px;}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;justify-content:space-between;}
+.toolbar-left{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.tag{display:inline-block;padding:3px 8px;border-radius:12px;font-size:var(--fs-xs);font-weight:var(--fw-semibold);}
+.tag.orange{background:var(--primary-light);color:var(--primary);}
+.tag.green{background:#E8F8F5;color:#27AE60;}
+.tag.red{background:#FDEDEC;color:#E74C3C;}
+.tag.gray{background:#F5F5F5;color:var(--muted);}
+
+input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
+::selection{background:var(--primary-light);}
+.swatch{width:20px;height:16px;border-radius:3px;display:inline-block;}
+.clickable{cursor:pointer;transition:all .12s;}
+.clickable:hover{opacity:.85;}
+
+@media(max-width:768px){
+  .topbar{flex-direction:column;height:auto;padding:10px 14px;gap:8px;}
+  .global-ctls{flex-wrap:wrap;width:100%;}
+  .hero{flex-direction:column;text-align:center;}
+  .main{padding:10px 12px;}
+  .mode-cards{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div id="modalContainer"></div>
+<div id="confirmDialog"></div>
+
+<!-- Squirrel FAB -->
+<button class="squirrel-fab" data-tip="回到顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#x1F43F;</button>
+
+<div class="topbar">
+  <div class="brand"><div class="logo" style="background:linear-gradient(135deg,#FF6A00,#FF8C42);font-size:22px;">&#x1F43F;</div><div class="title" style="font-size:15px;">三只<span style="color:#FF6A00;font-weight:800;">松鼠</span><span style="font-weight:500;color:#555;"> 客服排班</span></div></div>
+  <div class="global-ctls">
+    <select id="globalPlan"><option value="">请创建方案</option></select>
+    <select id="globalYear"></select>
+    <select id="globalMonth"></select>
+    <button class="btn btn-primary" onclick="showNewPlanModal()">+ 新建方案</button>
+    <button class="btn btn-sm" onclick="clonePlan()" title="克隆">&#x1F4CB;</button>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="tab-schedule">&#x1F4C5; 手动排班</button>
+  <button class="tab-btn" data-tab="tab-chat">&#x1F4AC; AI对话排班</button>
+  <button class="tab-btn" data-tab="tab-auto">&#x2699; 规则排班</button>
+  <button class="tab-btn" data-tab="tab-emp">&#x1F465; 人员管理</button>
+  <button class="tab-btn" data-tab="tab-data">&#x1F4CA; 历史数据</button>
+  <button class="tab-btn" data-tab="tab-llm">&#x1F916; LLM配置</button>
+</div>
+
+<div class="main">
+  <!-- ===== 手动排班 ===== -->
+  <div id="tab-schedule" class="panel active">
+    <div id="scheduleHero"></div>
+    <div class="card"><div id="scheduleShiftLegend"></div></div>
+    <div class="toolbar"><div class="toolbar-left">
+      <button class="btn btn-primary" onclick="exportScheduleCSV()">&#x1F4E5; 导出CSV</button>
+      <button class="btn" onclick="exportScheduleExcel()">&#x1F4C4; 导出日历</button>
+    </div></div>
+    <div class="card"><div id="scheduleGrid"></div></div>
+    <div class="card"><h3>月度统计 <span class="subtitle">点击表头排序</span></h3><div id="scheduleStats"></div></div>
+  </div>
+
+  <!-- ===== AI对话排班 ===== -->
+  <div id="tab-chat" class="panel">
+    <div class="card">
+      <div class="chat-box">
+        <div class="chat-welcome" id="chatWelcome">&#x1F43F; 你可以用自然语言描述排班需求<br>我会帮你生成、调整或诊断排班方案</div>
+        <div class="chat-status" id="chatCtxTags"></div>
+        <div class="quick-cmds">
+          <button class="quick-cmd" onclick="quickCmd('generate')">&#x26A1; 生成排班</button>
+          <button class="quick-cmd" onclick="quickCmd('check')">&#x1F50D; 检查违规</button>
+          <button class="quick-cmd" onclick="quickCmd('balance')">&#x2696; 均衡工作量</button>
+        </div>
+        <div class="chat-msgs" id="chatMessages"></div>
+        <div class="chat-input-row">
+          <button class="btn" onclick="document.getElementById('chatFileInp').click()" style="font-size:14px;">&#x1F4CE; 上传文件</button>
+          <input type="file" id="chatFileInp" accept=".xlsx,.xls,.csv,.png,.jpg,.jpeg" onchange="handleChatFile(event)" style="display:none">
+          <input id="chatInput" placeholder="帮我生成7月排班，尽量减少员工连续晚班">
+          <button class="btn btn-primary" onclick="sendChatMessage()">发送</button>
+          <button class="btn" onclick="clearChat()">清空</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 规则排班 ===== -->
+  <div id="tab-auto" class="panel">
+    <div class="mode-cards">
+      <div class="mode-card selected" onclick="selectAutoMode('pure',this)"><span class="icon">&#x1F4DD;</span><div class="label">纯规则排班</div><div class="desc">按硬性规则约束生成，无需流量数据</div><span class="badge ok">即时可用</span></div>
+      <div class="mode-card" onclick="selectAutoMode('predicted',this)" id="predModeCard"><span class="icon">&#x1F4C8;</span><div class="label">已预测流量排班</div><div class="desc">基于预测接待量驱动排班</div><span id="predBadge" class="badge no">需先运行流量预测</span><div style="margin-top:6px;"><button class="btn btn-xs" onclick="switchTab('tab-data');setTimeout(()=>document.getElementById('flowPredictSection')?.scrollIntoView({behavior:'smooth'}),300);" style="border-color:var(--primary);color:var(--primary);">前往运行预测 &rarr;</button></div></div>
+    </div>
+    <div <div class="card"><h3>&#x1F4DC; 硬性规则</h3>
+      <div class="rule-row">
+        <label data-tip="当月每人最多休息天数，超过视为异常">每月最多休息<input id="ruleMaxRestDays" type="number" value="10" min="0" max="20" oninput="validateRulesLive()"></label>
+        <label data-tip="员工不能单独休1天，至少连续休息N天">至少连续休息<input id="ruleMinConsecRest" type="number" value="1" min="1" max="5" oninput="validateRulesLive()"></label>
+        <label data-tip="早班连续上班天数上限，建议≤5天">早班连续上限<input id="ruleMaxE" type="number" value="5" min="1" max="15" oninput="validateRulesLive()"></label>
+        <label data-tip="中班连续上班天数上限，建议≤5天">中班连续上限<input id="ruleMaxM" type="number" value="5" min="1" max="15" oninput="validateRulesLive()"></label>
+        <label data-tip="晚班连续上班天数上限，建议≤3天">晚班连续上限<input id="ruleMaxN" type="number" value="3" min="1" max="10" oninput="validateRulesLive()"></label>
+      </div>
+      <div class="rule-row">
+        <label data-tip="员工当月最少上班天数">每月最少上班<input id="ruleMinMonthlyWork" type="number" value="20" min="10" max="31" oninput="validateRulesLive()"></label>
+        <label data-tip="每天至少需要几名早班当值">早班最低人数<input id="ruleMinE" type="number" value="1" min="0" max="50" oninput="validateRulesLive()"></label>
+        <label data-tip="每天至少需要几名中班当值">中班最低人数<input id="ruleMinM" type="number" value="1" min="0" max="50" oninput="validateRulesLive()"></label>
+        <label data-tip="每天至少需要几名晚班当值">晚班最低人数<input id="ruleMinN" type="number" value="0" min="0" max="50" oninput="validateRulesLive()"></label>
+      </div>
+      <div id="ruleValidationNote" style="margin-top:-6px;"></div>
+    </div>
+    <div class="card"><h3>&#x1F3E2; 班次配置</h3><div id="shiftConfig"></div></div>
+    <div style="text-align:center;margin:20px 0;">
+      <button class="btn btn-primary" onclick="generateAutoSchedule()" id="genBtn" style="font-size:16px;padding:12px 36px;">&#x26A1; 生成纯规则排班</button>
+    </div>
+  </div>
+
+  <!-- ===== 人员管理 ===== -->
+  <div id="tab-emp" class="panel">
+    <div class="batch-bar" id="batchBar"><span id="batchCount">已选 0 人</span> <button class="btn btn-sm" onclick="batchSetTeam()">调整团队</button> <button class="btn btn-sm" onclick="batchSetBlacklist()">设置禁止班次</button> <button class="btn btn-sm" onclick="clearBatch()">取消选择</button></div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="text" id="empSearch" placeholder="搜索姓名" oninput="renderEmployeePage()">
+        <select id="empTeamFilter" onchange="renderEmployeePage()"><option value="">全部团队</option></select>
+        <select id="empStatusFilter" onchange="renderEmployeePage()"><option value="all">全部状态</option><option value="active">在职</option><option value="inactive">离职</option></select>
+        <button class="btn btn-primary" onclick="showAddEmployeeModal()">+ 添加员工</button>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn" onclick="document.getElementById('empFileInp').click()">&#x1F4E5; 导入</button><input type="file" id="empFileInp" accept=".xlsx,.xls,.csv" onchange="importEmployees(event)" style="display:none">
+        <button class="btn" onclick="exportEmployees()">&#x1F4E4; 导出</button>
+        <button class="btn btn-sm" onclick="downloadEmpTemplate()">&#x1F4CB; 模板</button>
+        <button class="btn" onclick="exportAllData()">&#x1F4BE; 备份</button>
+        <button class="btn btn-sm" onclick="document.getElementById('allFileInp').click()">&#x1F4C2; 恢复</button><input type="file" id="allFileInp" accept=".json" onchange="importAllData(event)" style="display:none">
+      </div>
+    </div>
+    <div class="card"><div id="empTable"></div></div>
+    <datalist id="teamSuggestions"></datalist>
+  </div>
+
+  <!-- ===== 历史数据 ===== -->
+  <div id="tab-data" class="panel">
+    <div class="card"><h3>&#x1F4E5; 数据导入</h3>
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="font-weight:600;font-size:13px;">历史每日流量</span><span id="dailyTag" class="tag gray">未导入</span></div>
+      <div class="toolbar"><div><button class="btn btn-primary" onclick="document.getElementById('dailyFlowInp').click()">&#x1F4E5; 导入</button><input type="file" id="dailyFlowInp" accept=".xlsx,.xls,.csv" onchange="importDailyFlow(event)" style="display:none"><button class="btn btn-sm" onclick="downloadDailyTemplate()">&#x1F4CB; 模板</button></div></div><div id="dailyFlowPreview" style="font-size:var(--fs-xs);color:var(--muted);margin-top:2px;"></div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="font-weight:600;font-size:13px;">分时流量</span><span id="hourlyTag" class="tag gray">未导入</span></div>
+      <div class="toolbar"><div><button class="btn btn-primary" onclick="document.getElementById('hourlyFlowInp').click()">&#x1F4E5; 导入</button><input type="file" id="hourlyFlowInp" accept=".xlsx,.xls,.csv" onchange="importHourlyFlow(event)" style="display:none"><button class="btn btn-sm" onclick="downloadHourlyTemplate()">&#x1F4CB; 模板</button></div></div><div id="hourlyFlowPreview" style="font-size:var(--fs-xs);color:var(--muted);margin-top:2px;"></div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="font-weight:600;font-size:13px;">已预测流量</span><span id="predTag" class="tag gray">未导入</span></div>
+      <div class="toolbar"><div><button class="btn btn-primary" onclick="document.getElementById('predFlowInp').click()">&#x1F4E5; 导入</button><input type="file" id="predFlowInp" accept=".xlsx,.xls,.csv" onchange="importPredictedFlow(event)" style="display:none"><button class="btn btn-sm" onclick="downloadPredictedTemplate()">&#x1F4CB; 模板</button></div></div><div id="predFlowPreview" style="font-size:var(--fs-xs);color:var(--muted);margin-top:2px;"></div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="font-weight:600;font-size:13px;">历史班次</span></div>
+      <div class="toolbar"><div><button class="btn btn-primary" onclick="document.getElementById('histShiftInp').click()">&#x1F4E5; 导入</button><input type="file" id="histShiftInp" accept=".xlsx,.xls,.csv" onchange="importHistoricalShifts(event)" style="display:none"><button class="btn btn-sm" onclick="downloadShiftsTemplate()">&#x1F4CB; 模板</button></div></div>
+    </div>
+    <div class="card" id="flowPredictSection"><h3>&#x1F52E; 流量预测</h3>
+      <div class="rule-row">
+        <label data-tip="低于高段分界的GMV段，每万元GMV转化的接待量">低段转化比<input id="flowLowRatio" type="number" value="2.5" step="0.1"></label>
+        <label data-tip="GMV高低分段的分界线（万元）">高段分界(万)<input id="flowHighThreshold" type="number" value="10" step="1"></label>
+        <label data-tip="高于等于分界的GMV段，每万元GMV转化的接待量">高段转化比<input id="flowHighRatio" type="number" value="3.5" step="0.1"></label>
+        <label data-tip="每位客服每小时可处理的接待量上限">人均小时上限<input id="flowHourlyCap" type="number" value="30"></label>
+        <label data-tip="晚高峰时段（17-21点）额外容量上限">晚高峰上限<input id="flowEveningCap" type="number" value="40"></label>
+        <button class="btn btn-primary" onclick="runFlowPrediction()" id="predBtn" style="height:36px;align-self:flex-end;">&#x1F52E; 运行预测</button>
+      </div>
+      <div id="predResultSummary"></div>
+    </div>
+    <div id="dataStats"></div>
+    <div class="card" id="dataChartCard" style="display:none"><h3>分时分布 &#x1F7E6; 工作日 &#x1F7E7; 周末</h3><div class="chart-container"><canvas id="hourlyChart"></canvas></div></div>
+    <div class="card" id="predChartCard" style="display:none"><h3>预测结果</h3><div class="chart-container large"><canvas id="predChart"></canvas></div></div>
+    <div class="card"><h3>每日流量明细</h3><div id="dailyFlowTable"></div></div>
+    <div class="card" id="histShiftCard" style="display:none"><h3>历史班次</h3><div class="toolbar"><div><select id="histShiftMonthSel"><option value="">全部月份</option></select><button class="btn btn-primary btn-sm" onclick="applyHistoricalShifts()">应用到当前排班</button></div></div><div id="histShiftPreview"></div></div>
+  </div>
+
+  <!-- ===== LLM配置 ===== -->
+  <div id="tab-llm" class="panel">
+    <div class="card" style="margin-bottom:12px;background:var(--primary-light);border-color:var(--primary);font-size:var(--fs-body);padding:14px 18px;">
+      &#x1F4A1; 配置大模型后，可支持 <b>AI对话排班</b>、<b>排班智能诊断</b>、<b>违规自动优化</b> 等能力。
+    </div>
+    <div class="toolbar"><div><button class="btn btn-primary" onclick="addLLMConfig()">+ 添加配置</button></div></div>
+    <div class="card"><div id="llmConfigList"></div></div>
+  </div>
+</div>
+
+<script>
+(function loadXLSX(){if(typeof XLSX!=="undefined")return;var urls=["https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js","https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"];function tryNext(i){if(i>=urls.length)return;var s=document.createElement("script");s.src=urls[i];s.onload=function(){};s.onerror=function(){tryNext(i+1)};document.head.appendChild(s)}tryNext(0)})();
+</script>
+<script>
+// ============================================================
+// 三只松鼠客服排班系统 v4 — Application Logic
+// ============================================================
+const STORAGE_KEY='squirrel_schedule_v4',STORAGE_BACKUP='squirrel_schedule_v4_bak';
+const DEFAULT_SHIFTS=[
+  {code:'E',name:'早班',color:'#E3F2FD',textColor:'#1565C0',start:'09:00',end:'18:00',maxConsecutive:5,minStaff:1,ch:'早'},
+  {code:'M',name:'中班',color:'#FFF3E0',textColor:'#E65100',start:'12:00',end:'21:00',maxConsecutive:5,minStaff:1,ch:'中'},
+  {code:'N',name:'晚班',color:'#E8F5E9',textColor:'#2E7D32',start:'16:00',end:'01:00',maxConsecutive:3,minStaff:0,ch:'晚'},
+  {code:'R',name:'休息',color:'#F5F5F5',textColor:'#999',start:'-',end:'-',maxConsecutive:99,minStaff:0,isRest:true,ch:'休'},
+];
+const LEGAL_HOLIDAYS={}; // Simplified — can be extended
+
+let state={};
+function getDefaultState(){
+  return {
+    plans:[{id:'plan_1',name:'默认方案',team:'默认团队',year:2026,month:7,locked:false,notes:''}],
+    currentPlanId:'plan_1',
+    employees:[
+      {id:'emp_1',name:'客服A',team:'默认团队',capacity:250,restDays:[],shiftBlacklist:[],status:'active'},
+      {id:'emp_2',name:'客服B',team:'默认团队',capacity:250,restDays:[],shiftBlacklist:[],status:'active'},
+      {id:'emp_3',name:'客服C',team:'默认团队',capacity:250,restDays:[],shiftBlacklist:[],status:'active'},
+    ],
+    shifts:DEFAULT_SHIFTS.map(s=>({...s})),schedules:{},llmConfigs:[],
+    flowDaily:[],flowHourly:[],predictedFlow:[],historicalShifts:[],
+    flowParams:{lowRatio:2.5,highThreshold:10,highRatio:3.5,hourlyCap:30,eveningCap:40},
+  };
+}
+function loadState(){
+  try{
+    const d=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(STORAGE_BACKUP);
+    if(d){const p=JSON.parse(d);state={...getDefaultState(),...p};}else state=getDefaultState();
+    if(!state.plans||!state.plans.length)state=getDefaultState();
+    state.employees.forEach(e=>{if(!e.shiftBlacklist)e.shiftBlacklist=[];if(!e.status)e.status='active';});
+  }catch(e){state=getDefaultState();}
+}
+function saveState(){try{localStorage.setItem(STORAGE_BACKUP,JSON.stringify(state));localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){}}
+function getCurrentPlan(){return state.plans.find(p=>p.id===state.currentPlanId)||state.plans[0];}
+function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+function dateKey(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function mmdd(y,m,d){return `${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;}
+function isWeekend(y,m,d){const w=new Date(y,m-1,d).getDay();return w===0||w===6;}
+function isHoliday(y,m,d){const dk=dateKey(y,m,d);return !!LEGAL_HOLIDAYS[dk];}
+function getSchedule(planId,year,month){
+  if(!state.schedules[planId])state.schedules[planId]={};
+  const k=`${year||0}-${month||0}`;if(!state.schedules[planId][k])state.schedules[planId][k]={};
+  return state.schedules[planId][k];
+}
+function toast(msg,type='success'){
+  const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);
+}
+function ensureXLSX(){if(typeof XLSX==="undefined"){toast("Excel库未就绪，请刷新页面后重试","warn");return false}return true}
+
+function closeModal(){document.getElementById('modalContainer').innerHTML='';}
+function modalBgClose(e){if(e.target===e.currentTarget)closeModal();}
+function showConfirm(msg,onOk){
+  window._confirmCallback=onOk;
+  document.getElementById('confirmDialog').innerHTML=
+    '<div class="confirm-dialog"><div class="dialog-box"><p>'+msg+'</p>'+
+    '<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">'+
+    '<button class="btn" onclick="document.getElementById(\'confirmDialog\').innerHTML=\'\';window._confirmCallback=null">取消</button>'+
+    '<button class="btn btn-primary" onclick="var cb=window._confirmCallback;document.getElementById(\'confirmDialog\').innerHTML=\'\';window._confirmCallback=null;if(cb)cb()">确定</button>'+
+    '</div></div></div>';
+}
+
+// ---- TAB SWITCHING ----
+function switchTab(tabId){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const btn=document.querySelector(`[data-tab="${tabId}"]`);if(btn)btn.classList.add('active');
+  const p=document.getElementById(tabId);if(p)p.classList.add('active');
+  if(tabId==='tab-schedule')renderSchedulePage();
+  else if(tabId==='tab-emp')renderEmployeePage();
+  else if(tabId==='tab-auto')renderAutoPage();
+  else if(tabId==='tab-data')renderDataPage();
+  else if(tabId==='tab-chat')renderChatPage();
+  else if(tabId==='tab-llm')renderLLMConfigs();
+}
+
+// ---- VALIDATION ----
+function validateRulesLive(){
+  const msgs=[],v=(id,def)=>parseInt(document.getElementById(id)?.value)||def;
+  var maxRest=v('ruleMaxRestDays',10),minConsecRest=v('ruleMinConsecRest',1);
+  const maxE=v('ruleMaxE',5),maxM=v('ruleMaxM',5),maxN=v('ruleMaxN',3);
+  var minMth=v('ruleMinMonthlyWork',25);
+  if(minConsecRest>maxRest)msgs.push('连续休息天数不能大于最多休息天数');
+  
+  
+  if(maxE<1)msgs.push('E班连续上限至少为1');
+  if(maxM<1)msgs.push('M班连续上限至少为1');
+  if(maxN<1)msgs.push('N班连续上限至少为1');
+  const el=document.getElementById('ruleValidationNote');
+  var inputs=['ruleMaxRestDays','ruleMinConsecRest','ruleMaxE','ruleMaxM','ruleMaxN','ruleMinMonthlyWork'];
+  inputs.forEach(id=>{const inp=document.getElementById(id);if(inp)inp.closest('label')?.classList.remove('has-error');});
+  if(msgs.length){
+    if(el)el.innerHTML=msgs.map(m=>`<span style="color:var(--danger);font-size:11px;">&#x26A0; ${m}</span>`).join('<br>');
+    if(minConsecRest>maxRest){document.getElementById('ruleMinConsecRest')?.closest('label')?.classList.add('has-error');document.getElementById('ruleMaxRestDays')?.closest('label')?.classList.add('has-error');}
+  }else{if(el)el.innerHTML='<span style="color:var(--success);font-size:11px;">&#x2705; 参数校验通过</span>';}
+}
+
+// ---- PLAN MANAGEMENT ----
+function updateGlobalSelects(){
+  const plan=getCurrentPlan();
+  const sel=document.getElementById('globalPlan');
+  sel.innerHTML=state.plans.map(p=>`<option value="${p.id}" ${p.id===state.currentPlanId?'selected':''}>${p.name} · ${p.team||''} · ${p.year}/${p.month}</option>`).join('');
+  if(!state.plans.length)sel.innerHTML='<option value="">请创建方案</option>';
+  const ysel=document.getElementById('globalYear');ysel.innerHTML='';
+  for(let y=2024;y<=2030;y++)ysel.add(new Option(y+'年',y,y===(plan?plan.year:2026)));
+  const msel=document.getElementById('globalMonth');msel.innerHTML='';
+  for(let m=1;m<=12;m++)msel.add(new Option(m+'月',m,m===(plan?plan.month:7)));
+}
+function showNewPlanModal(){
+  const teams=[...new Set(state.employees.map(e=>e.team).filter(Boolean))];
+  document.getElementById('modalContainer').innerHTML=`
+    <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal"><h3>新建排班方案</h3>
+      <div class="form-group"><label>方案名称</label><input id="newPlanName" value="新方案"></div>
+      <div class="form-group"><label>团队</label><input id="newPlanTeam" list="teamSuggestions" value="默认团队"></div>
+      <div class="form-group"><label>场景备注</label><textarea id="newPlanNotes" placeholder="618大促、双11预售..."></textarea></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="createNewPlan()">创建</button></div>
+    </div></div>`;
+}
+function createNewPlan(){
+  const name=document.getElementById('newPlanName').value.trim()||'新方案';
+  const team=document.getElementById('newPlanTeam').value.trim()||'默认团队';
+  const notes=document.getElementById('newPlanNotes')?.value.trim()||'';
+  const now=new Date();const p={id:'plan_'+Date.now(),name,team,year:now.getFullYear(),month:now.getMonth()+1,locked:false,notes};
+  state.plans.push(p);state.currentPlanId=p.id;
+  saveState();closeModal();updateGlobalSelects();renderSchedulePage();toast('方案创建成功');
+}
+function clonePlan(){
+  const plan=getCurrentPlan();if(!plan){toast('请先创建方案','warn');return;}
+  const clone={...plan,id:'plan_'+Date.now(),name:plan.name+' (副本)',locked:false};
+  state.plans.push(clone);if(state.schedules[plan.id])state.schedules[clone.id]=JSON.parse(JSON.stringify(state.schedules[plan.id]));
+  state.currentPlanId=clone.id;saveState();updateGlobalSelects();renderSchedulePage();toast('方案已克隆');
+}
+
+// ---- SCHEDULE PAGE ----
+function getShift(code){return state.shifts.find(s=>s.code===code)||state.shifts.find(s=>s.code==='R');}
+
+// Render shift legend
+function renderShiftLegend(){
+  const items=state.shifts.map(s=>`<div class="item"><div class="swatch" style="background:${s.color};border:1px solid #ddd;"></div>${s.name}</div>`).join('');
+  document.getElementById('scheduleShiftLegend').innerHTML=`<div class="shift-legend">${items}</div>`;
+}
+
+// Check if schedule has any real assignment
+function hasAnyAssignment(planId,year,month){
+  const sched=getSchedule(planId,year,month);const numDays=daysInMonth(year,month);
+  for(let d=1;d<=numDays;d++){
+    const dk=dateKey(year,month,d);if(!sched[dk])continue;
+    for(const[_,code]of Object.entries(sched[dk]||{})){if(code&&code!=='R')return true;}
+  }
+  return false;
+}
+
+function cycleShift(planId,year,month,empId,dateStr){
+  const plan=state.plans.find(p=>p.id===planId);
+  if(!plan||plan.locked){toast('方案已锁定','warn');return;}
+  const emp=state.employees.find(e=>e.id===empId);if(!emp)return;
+  const sched=getSchedule(planId,year,month);const cur=sched[dateStr]?.[empId]||'R';
+  let idx=state.shifts.findIndex(s=>s.code===cur),attempts=0;
+  do{idx=(idx+1)%state.shifts.length;attempts++;}while(attempts<state.shifts.length&&emp.shiftBlacklist.includes(state.shifts[idx].code));
+  sched[dateStr]=sched[dateStr]||{};sched[dateStr][empId]=state.shifts[idx].code;
+  saveState();renderSchedulePage();toast('班次已切换');
+}
+
+function renderSchedulePage(){
+  const plan=getCurrentPlan();
+  if(!plan){document.getElementById('scheduleHero').innerHTML='<div class="empty-state"><span class="sq-icon">&#x1F43F;</span>请先创建排班方案</div>';document.getElementById('scheduleGrid').innerHTML='';return;}
+  const numDays=daysInMonth(plan.year,plan.month),sched=getSchedule(plan.id,plan.year,plan.month),emps=state.employees;
+  const totalSlots=emps.length*numDays;let filled=0;
+  for(let d=1;d<=numDays;d++){const dk=dateKey(plan.year,plan.month,d);if(sched[dk])filled+=Object.keys(sched[dk]).length;}
+  const pct=totalSlots>0?Math.round(filled/totalSlots*100):0;
+  const violations=validateSchedule(plan.id,plan.year,plan.month);
+  const vCount=violations.length;
+  const hasAssign=hasAnyAssignment(plan.id,plan.year,plan.month);
+  var dailyCard='';
+  if(window._dailyDemands&&window._dailyDemands.length>0){
+    var ml=autoMode==='pure'?'纯规则':'预测流量';
+    dailyCard='<div class="card" style="margin-bottom:12px;"><h3>每日数据（'+ml+'排班）</h3><div class="schedule-grid"><table class="data" style="font-size:11px;"><thead><tr><th>日期</th><th>预估接待</th><th>所需</th><th>实际</th></tr></thead><tbody>';
+    for(var d=1;d<=numDays;d++){var dd=window._dailyDemands[d-1];var dk=dateKey(plan.year,plan.month,d);var act=0;if(sched[dk]){for(var k in sched[dk]){if(sched[dk][k]!=='R')act++;}}dailyCard+='<tr><td>'+mmdd(plan.year,plan.month,d)+'</td><td>'+(dd.reception||'-')+'</td><td>'+dd.staff+'</td><td>'+act+'</td></tr>';}
+    dailyCard+='</tbody></table></div></div>';
+  }
+  document.getElementById('scheduleHero').innerHTML=dailyCard+`
+    <div class="hero">
+      <div><h2>${plan.year}年${plan.month}月 · ${plan.name}</h2>
+        <div style="font-size:13px;opacity:.85;margin-top:4px;">${plan.team||''} | ${emps.length}人 ${plan.notes?`| ${plan.notes}`:''}</div><div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div><div style="font-size:11px;opacity:.7;margin-top:2px;">排班进度 ${pct}% (${filled}/${totalSlots})</div></div>
+      <div class="hero-stats">
+        <span class="vcount" onclick="${vCount>0?`showViolationDetail()`:''}">${vCount>0?`&#x26A0; ${vCount}项违规（点击查看）`:`&#x2705; 无违规`}</span>
+        <span class="badge ${plan.locked?'locked':'unlocked'}">${plan.locked?'&#x1F512; 已锁定':'&#x1F513; 编辑中'}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3);" onclick="copyLastMonth()">&#x1F4CB; 复制上月排班</button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3);" onclick="fillRestForAll()">&#x1F6CC; 全月填充休息</button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3);" onclick="${plan.locked?'unlockPlan()':'lockPlan()'}">${plan.locked?'&#x1F513; 解锁排班':'&#x1F512; 锁定排班'}</button>
+      </div>
+    </div>`;
+  renderShiftLegend();
+  let grid='<div class="schedule-grid"><table><thead><tr><th class="sticky-col">员工</th>';
+  for(let d=1;d<=numDays;d++){
+    const cls=isWeekend(plan.year,plan.month,d)?'weekend':(isHoliday(plan.year,plan.month,d)?'holiday':'');
+    grid+=`<th class="${cls}">${mmdd(plan.year,plan.month,d)}</th>`;
+  }
+  grid+='</tr></thead><tbody>';
+  for(const emp of emps){
+    grid+=`<tr><td class="sticky-col" style="font-weight:600;">${emp.name}${emp.shiftBlacklist&&emp.shiftBlacklist.length?` <span class="tag red" style="font-size:9px;" title="限制:${emp.shiftBlacklist.join(',')}">限</span>`:''}</td>`;
+    for(let d=1;d<=numDays;d++){
+      const dk=dateKey(plan.year,plan.month,d);const code=sched[dk]?.[emp.id]||'';const sh=getShift(code||'R');
+      const isV=vCount>0&&violations.some(v=>v.empId===emp.id&&v.date===dk);
+      const vMsg=violations.filter(v=>v.empId===emp.id&&v.date===dk).map(v=>v.msg).join(', ');
+      grid+=`<td class="shift-cell${isV?' violation':''}" style="background:${sh.color};color:${sh.textColor};" onclick="cycleShift('${plan.id}',${plan.year},${plan.month},'${emp.id}','${dk}')" ${isV?`title="&#x26A0; ${vMsg}"`:''}>${sh.ch||sh.name[0]||'·'}</td>`;
+    }
+    grid+='</tr>';
+  }
+  grid+='</tbody></table></div>';
+  document.getElementById('scheduleGrid').innerHTML=grid;
+  renderStatsTable(plan,emps,numDays,sched,hasAssign);
+}
+function renderStatsTable(plan,emps,numDays,sched,hasAssign){
+  const shiftCodes=state.shifts.map(s=>s.code);
+  const rules=getAutoRules();
+  // header with sort controls
+  let h='<div class="schedule-grid"><table class="data" id="statsTable"><thead><tr><th>员工</th>';
+  for(const sc of shiftCodes)h+=`<th>${getShift(sc).name}</th>`;
+  h+='<th class="sortable" onclick="sortStats(\'work\')">上班天 &#x2195;</th><th class="sortable" onclick="sortStats(\'rest\')">休息天 &#x2195;</th><th>状态</th></tr></thead><tbody>';
+  const rows=[];
+  for(const emp of emps){
+    const cnt={};shiftCodes.forEach(c=>cnt[c]=0);let workDays=0;
+    for(let d=1;d<=numDays;d++){const dk=dateKey(plan.year,plan.month,d);const c=sched[dk]?.[emp.id]||'R';cnt[c]=(cnt[c]||0)+1;if(c!=='R')workDays++;}
+    const restDays=numDays-workDays;
+    let status,statusCls;
+    if(!hasAssign){status='未排班';statusCls='var(--muted)'}
+    else if(rules.minMonthlyWork>0&&workDays<rules.minMonthlyWork){status='&#x26A0; 不达标(上班不足)';statusCls='var(--danger)'}
+    else if(restDays>rules.maxRestDays+3){status='&#x26A0; 不达标(休息过多)';statusCls='var(--danger)'}
+    else if(restDays<rules.maxRestDays){status='&#x26A0; 不足';statusCls='var(--warn)'}
+    else{status='&#x2705; 达标';statusCls='var(--success)'}
+    rows.push({emp,workDays,restDays,status,statusCls,cnt});
+  }
+  for(const r of rows){
+    h+=`<tr><td>${r.emp.name}</td>`;
+    shiftCodes.forEach(c=>h+=`<td>${r.cnt[c]||0}</td>`);
+    h+=`<td>${r.workDays}</td><td>${r.restDays}</td><td style="color:${r.statusCls};font-weight:600;">${r.status}</td></tr>`;
+  }
+  h+='</tbody></table></div>';document.getElementById('scheduleStats').innerHTML=h;
+  if(typeof __dailyCard!=='undefined'&&__dailyCard){document.getElementById('scheduleStats').insertAdjacentHTML('afterend',__dailyCard);}
+  window._statsData={rows,numDays,shiftCodes};
+}
+let _statsSort='work';
+function sortStats(key){_statsSort=key;const d=window._statsData;if(!d){renderSchedulePage();return}d.rows.sort((a,b)=>(a[key]-b[key]));let h='<div class="schedule-grid"><table class="data" id="statsTable"><thead><tr><th>员工</th>';for(const sc of d.shiftCodes)h+=`<th>${getShift(sc).name}</th>`;h+=`<th class="sortable" onclick="sortStats(\'work\')">上班天 ${_statsSort==='work'?'&#x25B2;':'&#x2195;'}</th><th class="sortable" onclick="sortStats(\'rest\')">休息天 ${_statsSort==='rest'?'&#x25B2;':'&#x2195;'}</th><th>状态</th></tr></thead><tbody>`;for(const r of d.rows){h+=`<tr><td>${r.emp.name}</td>`;d.shiftCodes.forEach(c=>h+=`<td>${r.cnt[c]||0}</td>`);h+=`<td>${r.workDays}</td><td>${r.restDays}</td><td style="color:${r.statusCls};font-weight:600;">${r.status}</td></tr>`;}h+='</tbody></table></div>';document.getElementById('scheduleStats').innerHTML=h;
+  if(typeof __dailyCard!=='undefined'&&__dailyCard){document.getElementById('scheduleStats').insertAdjacentHTML('afterend',__dailyCard);}}
+
+// ---- VIOLATION DETAIL MODAL ----
+let cachedViolations=[];
+function showViolationDetail(){
+  const plan=getCurrentPlan();if(!plan)return;
+  cachedViolations=validateSchedule(plan.id,plan.year,plan.month);
+  if(!cachedViolations.length){toast('无违规项','info');return;}
+  const items=cachedViolations.map((v,i)=>`
+    <div class="violation-item" onclick="jumpToViolation(${i})">
+      <span class="v-emp">${v.empName}</span><span class="v-date">${v.date}</span>
+      <span class="v-rule" style="color:var(--danger);">${v.msg}</span>
+    </div>`).join('');
+  document.getElementById('modalContainer').innerHTML=`
+    <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal wide"><h3>&#x26A0; 违规明细（共${cachedViolations.length}项）</h3>
+      <div class="violation-detail">${items}</div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">关闭</button></div>
+    </div></div>`;
+}
+function jumpToViolation(idx){
+  const v=cachedViolations[idx];if(!v)return;
+  closeModal();switchTab('tab-schedule');
+  setTimeout(()=>{
+    const cells=document.querySelectorAll('.schedule-grid td');
+    for(const cell of cells){
+      if(cell.title&&cell.title.includes(v.date)&&cell.title.includes(v.empName)){cell.scrollIntoView({behavior:'smooth',block:'center'});cell.style.outline='3px solid var(--danger)';setTimeout(()=>cell.style.outline='',2000);break;}
+    }
+  },300);
+}
+
+// ---- VALIDATION ENGINE ----
+function validateSchedule(planId,year,month){
+  var v=[],plan=state.plans.find(function(p){return p.id===planId});if(!plan)return v;
+  var sched=getSchedule(planId,year,month),numDays=daysInMonth(year,month),emps=state.employees;
+  var rules=getAutoRules();
+  var maxConsec={};state.shifts.forEach(function(s){maxConsec[s.code]=s.maxConsecutive});
+  for(const emp of emps){
+    for(let d=1;d<numDays;d++){const dk1=dateKey(year,month,d),dk2=dateKey(year,month,d+1);const c1=sched[dk1]?.[emp.id]||'R',c2=sched[dk2]?.[emp.id]||'R';if(c1==='N'&&c2==='E')v.push({empId:emp.id,empName:emp.name,date:dk2,msg:'R1:N→E断崖'});}
+  }
+  for(const emp of emps){let cur='',cnt=0;for(let d=1;d<=numDays;d++){const dk=dateKey(year,month,d);const c=sched[dk]?.[emp.id]||'R';if(c===cur)cnt++;else{cur=c;cnt=1;}if(c!=='R'&&maxConsec[c]&&cnt>maxConsec[c])v.push({empId:emp.id,empName:emp.name,date:dk,msg:`R2:${getShift(c).name}连${cnt}>${maxConsec[c]}天`});}}
+  for(const emp of emps){for(const rd of(emp.restDays||[])){const p=rd.split('-');if(p.length!==3||parseInt(p[1])!==month)continue;if(sched[rd]?.[emp.id]&&sched[rd][emp.id]!=='R')v.push({empId:emp.id,empName:emp.name,date:rd,msg:'R3:强制休息日未休'});}}
+  for(let d=1;d<=numDays;d++){const dk=dateKey(year,month,d);const ps={};state.shifts.forEach(s=>ps[s.code]=0);for(const emp of emps){const c=sched[dk]?.[emp.id]||'R';ps[c]=(ps[c]||0)+1;}for(const s of state.shifts){if(s.minStaff&&ps[s.code]<s.minStaff&&s.code!=='R')v.push({empId:'ALL',empName:'全体',date:dk,msg:`R6:${s.name}${ps[s.code]}&lt;${s.minStaff}`});}}
+
+  // R4: Monthly min rest days per employee
+  for(var ei=0;ei<emps.length;ei++){
+    var emp=emps[ei];var restCount=0,workCount=0;
+    for(var d=1;d<=numDays;d++){
+      var dk=dateKey(year,month,d);
+      var c=sched[dk]&&sched[dk][emp.id]?sched[dk][emp.id]:'R';
+      if(c==='R')restCount++;else workCount++;
+    }
+    if(restCount<rules.maxRestDays)v.push({empId:emp.id,empName:emp.name,date:dateKey(year,month,1),msg:'R4:休息'+restCount+'<'+rules.maxRestDays+'天'});
+    // R5: Monthly work bounds
+    // maxMonthlyWork removed
+    if(rules.minMonthlyWork>0&&workCount<rules.minMonthlyWork)v.push({empId:emp.id,empName:emp.name,date:dateKey(year,month,1),msg:'R5:上班'+workCount+'<下限'+rules.minMonthlyWork+'天'});
+  }
+  return v;
+}
+
+// ---- COPY / FILL / LOCK ----
+function copyLastMonth(){
+  const plan=getCurrentPlan();if(!plan||plan.locked){toast('方案已锁定','warn');return;}
+  showConfirm('将复制上月排班到当前月？',()=>{
+    const pm=plan.month===1?12:plan.month-1,py=plan.month===1?plan.year-1:plan.year;
+    const src=getSchedule(plan.id,py,pm),dst=getSchedule(plan.id,plan.year,plan.month);
+    for(const[dk,assign]of Object.entries(src||{})){dst[dk]={...(dst[dk]||{}),...assign};}
+    saveState();renderSchedulePage();toast('已复制上月排班');
+  });
+}
+function fillRestForAll(){
+  const plan=getCurrentPlan();if(!plan||plan.locked){toast('方案已锁定','warn');return;}
+  showConfirm('将所有员工全部设为休息？',()=>{
+    const sched=getSchedule(plan.id,plan.year,plan.month),numDays=daysInMonth(plan.year,plan.month);
+    for(const emp of state.employees){for(let d=1;d<=numDays;d++){const dk=dateKey(plan.year,plan.month,d);if(!sched[dk])sched[dk]={};sched[dk][emp.id]='R';}}
+    saveState();renderSchedulePage();toast('已全部设为休息');
+  });
+}
+function lockPlan(){const p=getCurrentPlan();if(p){p.locked=true;saveState();renderSchedulePage();toast('方案已锁定');}}
+function unlockPlan(){const p=getCurrentPlan();if(p){p.locked=false;saveState();renderSchedulePage();toast('方案已解锁');}}
+
+// ---- AUTO SCHEDULING ----
+let autoMode='pure';
+function selectAutoMode(mode,el){
+  autoMode=mode;document.querySelectorAll('.mode-card').forEach(function(c){c.classList.remove('selected')});el.classList.add('selected');
+  var btn=document.getElementById('genBtn');if(!btn)return;
+  var hasPred=!!(state.predictedFlow&&state.predictedFlow.length);
+  if(mode==='predicted'&&!hasPred){
+    btn.textContent='\u26A0 需先运行预测，点击跳转';
+    btn.style.background='var(--muted)';
+    btn.onclick=function(){switchTab('tab-data')};
+  }else{
+    btn.textContent=mode==='pure'?'\u26A1 生成纯规则排班':'\u26A1 生成预测流量排班';
+    btn.style.background='';
+    btn.onclick=generateAutoSchedule;
+  }
+}
+function renderAutoPage(){
+  var hasPred=!!(state.predictedFlow&&state.predictedFlow.length);
+  var badge=document.getElementById('predBadge');if(badge){badge.className='badge '+(hasPred?'ok':'no');badge.textContent=hasPred?'\u2705 数据就绪':'需先运行流量预测';}
+  var pc=document.getElementById('predModeCard');if(pc&&!hasPred)pc.classList.add('disabled');else if(pc)pc.classList.remove('disabled');
+  renderShiftConfig();
+  var btn=document.getElementById('genBtn');if(!btn)return;
+  if(autoMode==='predicted'&&!hasPred){
+    btn.textContent='\u26A0 需先运行预测，点击跳转';
+    btn.style.background='var(--muted)';
+    btn.onclick=function(){switchTab('tab-data')};
+  }else{
+    btn.textContent=autoMode==='pure'?'\u26A1 生成纯规则排班':'\u26A1 生成预测流量排班';
+    btn.style.background='';
+    btn.onclick=generateAutoSchedule;
+  }
+}
+
+function getAutoRules(){var f=function(x){return parseInt(document.getElementById(x)?.value)||0};return{maxRestDays:f("ruleMaxRestDays")||10,minConsecRest:f("ruleMinConsecRest")||1,maxE:f("ruleMaxE")||5,maxM:f("ruleMaxM")||5,maxN:f("ruleMaxN")||3,minE:f("ruleMinE")||1,minM:f("ruleMinM")||1,minN:f("ruleMinN")||0,minMonthlyWork:f("ruleMinMonthlyWork")||20}}
+function getPredictedDemands(year,month,numDays){
+  var demands=[];for(var d=1;d<=numDays;d++)demands.push({staff:0,reception:0});
+  var totalEmps=state.employees.length;
+  if(autoMode==='predicted'&&state.predictedFlow&&state.predictedFlow.length){
+    // Build date -> predicted map
+    var predMap={};
+    for(var i=0;i<state.predictedFlow.length;i++){
+      var pf=state.predictedFlow[i];
+      var p=pf.date.split('-');var m=parseInt(p[1]),dy=parseInt(p[2]);
+      if(m===month&&dy>=1&&dy<=numDays){
+        var val=pf.predicted||pf.reception||0;
+        // Calculate staff needed: reception / avg capacity, minimum 1
+        var avgCap=250;
+        if(state.employees.length>0)avgCap=state.employees[0].capacity||250;
+        var staffNeeded=Math.max(1,Math.round(val/avgCap));
+        predMap[dy]={reception:val,staff:Math.min(staffNeeded,totalEmps)};
+      }
+    }
+    // Fill demands from prediction map
+    for(var d=1;d<=numDays;d++){
+      if(predMap[d]){demands[d-1].staff=predMap[d].staff;demands[d-1].reception=predMap[d].reception}
+      else{demands[d-1].staff=Math.max(1,Math.round(totalEmps*0.5));demands[d-1].reception=0}
+    }
+  }else{
+    // Pure rule mode: calculate based on minStaff requirements
+    var rules=getAutoRules();
+    var minPerDay=Math.max(rules.minE||1,rules.minM||1,rules.minN||0);
+    // Each day needs at least sum of minStaff across all shifts
+    var dailyNeed=0;
+    for(var si=0;si<state.shifts.length;si++){
+      var s=state.shifts[si];
+      if(s.code!=='R'&&s.minStaff)dailyNeed+=s.minStaff;
+    }
+    dailyNeed=Math.max(dailyNeed,minPerDay||1);
+    // Ensure feasibility: total slots <= totalEmps * (numDays-minRestDays)
+    var maxPossiblePerDay=Math.ceil(totalEmps*(numDays-rules.maxRestDays)/numDays);
+    dailyNeed=Math.min(dailyNeed,totalEmps);
+    dailyNeed=Math.min(dailyNeed,maxPossiblePerDay);
+    dailyNeed=Math.max(dailyNeed,1);
+    for(var d=1;d<=numDays;d++){demands[d-1].staff=dailyNeed;demands[d-1].reception=0}
+  }
+  // Store for display
+  window._dailyDemands=demands;
+  return demands;
+}
+let _genLoading=false;
+function generateAutoSchedule(){
+  // P0: Loading state
+  if(_genLoading)return;
+  const btn=document.getElementById('genBtn');
+  if(!btn)return;
+  _genLoading=true;
+  btn.classList.add('loading');
+  btn.disabled=true;
+  btn.textContent='生成中...';
+
+  // P1: Pre-checks
+  const plan=getCurrentPlan();
+  if(!plan){toast('请先创建方案','warn');resetGenBtn();return;}
+  if(plan.locked){toast('方案已锁定，先解锁再生成','warn');resetGenBtn();return;}
+  if(!state.employees||!state.employees.length){toast('当前团队暂无员工，请先前往人员管理页添加员工','warn');resetGenBtn();return;}
+  if(!state.shifts||state.shifts.filter(s=>s.code!=='R').length<1){toast('至少需要1个有效工作班次','warn');resetGenBtn();return;}
+
+  // P1: Rule validation
+  var rules=getAutoRules();
+  var ruleErrors=[];
+  if(rules.minConsecRest>rules.maxRestDays)ruleErrors.push('\u2022 连续休息天数('+rules.minConsecRest+')不可大于最少休息天数('+rules.maxRestDays+')');
+  if(rules.maxE<1||rules.maxM<1||rules.maxN<1)ruleErrors.push('\u2022 各班次连续上限至少为1');
+  if(rules.maxMonthly>31||rules.maxMonthly<1)ruleErrors.push('\u2022 月最多上班应在1-31之间');
+  if(rules.minE<0||rules.minM<0)ruleErrors.push('\u2022 班次最低人数不可为负数');
+  if(ruleErrors.length){
+    var errMsg='规则存在冲突，请调整后重试：<br>'+ruleErrors.join('<br>');
+    document.getElementById('confirmDialog').innerHTML='<div class="confirm-dialog"><div class="dialog-box"><p style="text-align:left;font-size:13px;">'+errMsg+'</p><div style="margin-top:16px;"><button class="btn btn-primary" onclick="document.getElementById(\'confirmDialog\').innerHTML=\'\'">知道了</button></div></div></div>';
+    resetGenBtn();return;
+  }
+
+  // P1: Warn if predicted mode but no data
+  var modeLabel=autoMode==='pure'?'纯规则':'已预测流量';
+  if(autoMode==='predicted'&&(!state.predictedFlow||!state.predictedFlow.length)){
+    toast('预测模式下需已预测流量数据，请先在历史数据页运行预测','warn');
+    resetGenBtn();return;
+  }
+
+  // P2: Confirmation with reset-on-cancel
+  window._genData={plan,rules,modeLabel};
+  showConfirm('即将生成<b>'+plan.year+'年'+plan.month+'月</b>排班（'+modeLabel+'模式），<br>会<b>覆盖</b>当前方案的已有排班数据，是否继续？',function(){
+    var d=window._genData;
+    if(!d){resetGenBtn();return}
+    try{
+      doGenerate(d.plan,d.rules,d.modeLabel);
+    }catch(e){
+      console.error('Generation error:',e);
+      toast('排班生成失败，请稍后重试','error');
+      resetGenBtn();
+    }
+  });
+}
+
+function resetGenBtn(){
+  _genLoading=false;
+  var btn=document.getElementById('genBtn');
+  if(btn){btn.classList.remove('loading');btn.disabled=false;btn.textContent=autoMode==='pure'?'\u26A1 生成纯规则排班':'\u26A1 生成预测流量排班';}
+}
+
+function doGenerate(plan,rules,modeLabel){
+  var numDays=daysInMonth(plan.year,plan.month);
+  var demands=getPredictedDemands(plan.year,plan.month,numDays);
+  var emps=state.employees;
+  var sched=getSchedule(plan.id,plan.year,plan.month);
+  var totalEmps=emps.length;
+
+  // Clear old schedule
+  for(var k of Object.keys(sched))delete sched[k];
+
+  // ---- STEP 1: Calculate work days per employee with BALANCE ----
+  // Target: each employee works between minMonthlyWork and maxMonthlyWork
+  //         with at least minRestDays rest days, evenly distributed
+  var minWork=rules.minMonthlyWork>0?Math.min(rules.minMonthlyWork,numDays-rules.maxRestDays):numDays-rules.maxRestDays;
+  var maxWork=numDays;
+
+  // Calculate total work-days needed across all days
+  var totalWorkNeeded=0;
+  for(var d=1;d<=numDays;d++)totalWorkNeeded+=demands[d-1].staff;
+
+  // Target work per employee (balanced)
+  var avgWork=Math.round(totalWorkNeeded/totalEmps);
+  // Clamp to rules
+  avgWork=Math.max(minWork,Math.min(maxWork,avgWork));
+  // Ensure avgWork + minRestDays <= numDays
+  avgWork=Math.min(avgWork,numDays-rules.maxRestDays);
+
+  // Check feasibility
+  if(totalWorkNeeded>totalEmps*(numDays-rules.maxRestDays)){
+    var maxPossible=totalEmps*(numDays-rules.maxRestDays);
+    toast('当前规则无法满足：总需求人力('+totalWorkNeeded+')超过最大可排人力('+maxPossible+')，建议减少班次最低人数或增加员工','error');
+    resetGenBtn();return;
+  }
+  if(minWork>numDays-rules.maxRestDays){
+    toast('规则冲突：最少上班('+minWork+')天+最少休息('+rules.maxRestDays+')天超过月天数('+numDays+')，请调整规则','error');
+    resetGenBtn();return;
+  }
+
+  // Assign target work days to each employee (balanced)
+  var empTarget={};
+  var remainingWork=totalWorkNeeded;
+  // First pass: assign avg to all
+  for(var ei=0;ei<totalEmps;ei++){
+    var emp=emps[ei];
+    empTarget[emp.id]=avgWork;
+    remainingWork-=avgWork;
+  }
+  // Distribute remaining work evenly
+  while(remainingWork>0){
+    for(var ei=0;ei<totalEmps&&remainingWork>0;ei++){
+      var emp=emps[ei];
+      if(empTarget[emp.id]<maxWork&&empTarget[emp.id]<numDays-rules.maxRestDays){
+        // Check forced rest days
+        var forcedCount=(emp.restDays||[]).filter(function(d){return d.startsWith(plan.year+'-'+String(plan.month).padStart(2,'0'))}).length;
+        if(empTarget[emp.id]+forcedCount<numDays){
+          empTarget[emp.id]++;remainingWork--;
+        }
+      }
+    }
+    // If stuck, break
+    if(remainingWork===totalWorkNeeded-avgWork*totalEmps)break;
+    var oldRemaining=remainingWork;
+    totalWorkNeeded=oldRemaining+avgWork*totalEmps;
+  }
+  // Clamp all to min work
+  for(var ei=0;ei<totalEmps;ei++){
+    empTarget[emps[ei].id]=Math.max(minWork,Math.min(numDays-rules.maxRestDays,Math.min(maxWork,empTarget[emps[ei].id])));
+  }
+
+  // ---- STEP 2: Plan rest days in consecutive blocks ----
+  var empRestDays={};
+  for(var ei=0;ei<totalEmps;ei++){
+    var emp=emps[ei];
+    var forced=new Set();
+    (emp.restDays||[]).forEach(function(d){
+      var dp=d.split('-');if(dp.length===3&&parseInt(dp[1])===plan.month)forced.add(parseInt(dp[2]));
+    });
+    var targetWork=empTarget[emp.id];
+    var targetRest=Math.min(numDays-targetWork,rules.maxRestDays||numDays);
+    var restPicks=new Set();
+
+    // Add forced rest days
+    forced.forEach(function(d){restPicks.add(d)});
+
+    // Create consecutive rest blocks
+    var stillNeed=targetRest-restPicks.size;
+    if(stillNeed>0){
+      var blockSize=rules.minConsecRest>0?rules.minConsecRest:1;
+      // Find available slots for rest blocks
+      var blockSlots=[];
+      for(var d=1;d+blockSize-1<=numDays;d++){
+        var allFree=true;
+        for(var b=0;b<blockSize;b++){if(forced.has(d+b)||restPicks.has(d+b)){allFree=false;break}}
+        if(allFree)blockSlots.push(d);
+      }
+      // Shuffle blocks for variety
+      for(var i=blockSlots.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=blockSlots[i];blockSlots[i]=blockSlots[j];blockSlots[j]=tmp}
+      // Place rest blocks
+      var blocksNeeded=Math.ceil(stillNeed/blockSize);
+      for(var bi=0;bi<Math.min(blocksNeeded,blockSlots.length);bi++){
+        var startD=blockSlots[bi];
+        for(var b=0;b<blockSize;b++)restPicks.add(startD+b);
+      }
+      // Fill remaining individual rest days
+      var rem=targetRest-restPicks.size;
+      if(rem>0){
+        var singles=[];
+        for(var d=1;d<=numDays;d++){if(!forced.has(d)&&!restPicks.has(d))singles.push(d)}
+        for(var i=singles.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=singles[i];singles[i]=singles[j];singles[j]=tmp}
+        for(var si=0;si<Math.min(rem,singles.length);si++)restPicks.add(singles[si]);
+      }
+    }
+    empRestDays[emp.id]={forced:forced,rest:Array.from(restPicks).filter(function(d){return !forced.has(d)}),allRest:restPicks};
+  }
+
+  // ---- STEP 3: Assign shifts day by day with constraints ----
+  var shiftOrder=['E','M','N'];
+  var maxConsec={E:rules.maxE,M:rules.maxM,N:rules.maxN};
+  var prevDayCode={};
+
+  // Track employee work counts for balancing
+  var empWorkCount={};
+  for(var ei=0;ei<totalEmps;ei++)empWorkCount[emps[ei].id]=0;
+
+  for(var d=1;d<=numDays;d++){
+    var dk=dateKey(plan.year,plan.month,d);
+    sched[dk]={};
+    var needed=demands[d-1].staff;
+
+    // Build worker list (not resting today)
+    var workers=[];
+    for(var ei=0;ei<totalEmps;ei++){
+      var emp=emps[ei];
+      var rs=empRestDays[emp.id];
+      if(rs.allRest.has(d)){sched[dk][emp.id]='R';continue;}
+      if(emp.shiftBlacklist&&emp.shiftBlacklist.length>=shiftOrder.length)continue;
+      workers.push(emp);
+    }
+
+    // Sort: N→E prevention + balance (fewer workdays → work today)
+    workers.sort(function(a,b){
+      // N yesterday → go to end
+      var pa=prevDayCode[a.id],pb=prevDayCode[b.id];
+      if(pa==='N'&&pb!=='N')return 1;
+      if(pb==='N'&&pa!=='N')return -1;
+      // Balance: fewer total work → work today
+      if(empWorkCount[a.id]<empWorkCount[b.id])return -1;
+      if(empWorkCount[a.id]>empWorkCount[b.id])return 1;
+      return 0;
+    });
+
+    var assigned=0,si=0;
+    for(var wi=0;wi<workers.length;wi++){
+      var emp=workers[wi];
+      if(assigned>=needed&&empWorkCount[emp.id]>=empTarget[emp.id]){
+        sched[dk][emp.id]='R';continue;
+      }
+      if(assigned>=needed){
+        sched[dk][emp.id]='R';continue;
+      }
+
+      // Try shift codes
+      var code=shiftOrder[si%3];
+      // Skip blacklisted shifts
+      var tries=0;
+      while(emp.shiftBlacklist&&emp.shiftBlacklist.indexOf(code)>=0&&tries<3){si++;code=shiftOrder[si%3];tries++}
+      // N→E break
+      if(prevDayCode[emp.id]==='N'&&code==='E')code='M';
+      // Max consecutive check
+      var cons=1;
+      for(var pd=d-1;pd>=1;pd--){
+        var pdk=dateKey(plan.year,plan.month,pd);
+        if(sched[pdk]&&sched[pdk][emp.id]===code)cons++;else break;
+      }
+      if(cons>=maxConsec[code]){
+        // Try next shift
+        var original=code;
+        si++;code=shiftOrder[si%3];
+        if(prevDayCode[emp.id]==='N'&&code==='E')code='M';
+        // Re-check consecutive for new code
+        cons=1;
+        for(var pd=d-1;pd>=1;pd--){
+          var pdk=dateKey(plan.year,plan.month,pd);
+          if(sched[pdk]&&sched[pdk][emp.id]===code)cons++;else break;
+        }
+        if(cons>=maxConsec[code]){sched[dk][emp.id]='R';continue}
+      }
+
+      sched[dk][emp.id]=code;
+      prevDayCode[emp.id]=code;
+      empWorkCount[emp.id]++;
+      assigned++;si++;
+    }
+    // Remaining workers get rest
+    for(var wi=assigned;wi<workers.length;wi++){
+      sched[dk][workers[wi].id]='R';
+    }
+  }
+
+  saveState();
+
+  // Store daily demand data for display
+  window._dailyDemands=demands;
+  window._empTargets=empTarget;
+
+  // Validate result
+  var violations=validateSchedule(plan.id,plan.year,plan.month);
+  var filledDays=0;
+  for(var d=1;d<=numDays;d++){
+    var dk=dateKey(plan.year,plan.month,d);
+    if(sched[dk]&&Object.keys(sched[dk]).length>0)filledDays++;
+  }
+
+  if(filledDays===0){
+    toast('排班生成失败：当前规则约束过强，无法生成合规排班','error');
+    resetGenBtn();return;
+  }
+
+  // Count actual work days per employee
+  var workSummary=[];
+  for(var ei=0;ei<totalEmps;ei++){
+    var emp=emps[ei];var wd=0;
+    for(var d=1;d<=numDays;d++){
+      var dk=dateKey(plan.year,plan.month,d);
+      var c=sched[dk]&&sched[dk][emp.id]?sched[dk][emp.id]:'R';
+      if(c!=='R')wd++;
+    }
+    workSummary.push({name:emp.name,workDays:wd,restDays:numDays-wd,target:empTarget[emp.id]});
+  }
+  var maxWD=Math.max.apply(null,workSummary.map(function(w){return w.workDays}));
+  var minWD=Math.min.apply(null,workSummary.map(function(w){return w.workDays}));
+  window._workSummary=workSummary;
+
+  var vMsg=violations.length>0?'（'+violations.length+'项违规待处理）':'合规';
+
+  resetGenBtn();
+  toast('排班生成完成：共'+filledDays+'天，'+vMsg+('，上班 '+minWD+'~'+maxWD+' 天'),violations.length>0?'warn':'success');
+  switchTab('tab-schedule');
+}
+
+// ---- SHIFT CONFIG ----
+function renderShiftConfig(){
+  const html=state.shifts.map(s=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="width:40px;height:22px;border-radius:4px;background:${s.color};text-align:center;line-height:22px;color:${s.textColor};font-weight:700;flex-shrink:0;">${s.name}</span>
+      <span style="flex:1;font-weight:600;min-width:40px;">${s.name}</span>
+      <span style="font-size:11px;color:var(--muted);min-width:80px;">${s.start}-${s.end}</span>
+      <span style="font-size:11px;color:var(--muted);">连续上限</span>
+      <input type="number" value="${s.maxConsecutive}" min="1" max="15" style="width:50px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" onchange="updateShiftField('${s.code}','maxConsecutive',+this.value)" data-tip="连续上班天数上限">
+      <span style="font-size:11px;color:var(--muted);">每日最低</span>
+      <input type="number" value="${s.minStaff}" min="0" max="20" style="width:50px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" onchange="updateShiftField('${s.code}','minStaff',+this.value)" data-tip="每天最少在岗人数">
+      ${s.code!=='R'?`<button class="btn btn-danger btn-xs" onclick="deleteShift('${s.code}')">&#x2715;</button>`:'<span style="font-size:11px;color:var(--muted);">内置</span>'}
+    </div>`).join('');
+  document.getElementById('shiftConfig').innerHTML=html+'<div style="margin-top:8px;"><button class="btn btn-sm" onclick="showAddShiftModal()">+ 新增班次</button></div>';
+}
+function updateShiftField(code,field,val){const s=state.shifts.find(s=>s.code===code);if(s){s[field]=val;saveState();}}
+function showAddShiftModal(){
+  document.getElementById('modalContainer').innerHTML=`
+    <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal"><h3>新增班次</h3>
+      <div class="form-group"><label>代码</label><input id="nsCode" maxlength="2"></div>
+      <div class="form-group"><label>名称</label><input id="nsName"></div>
+      <div style="display:flex;gap:8px;"><div class="form-group" style="flex:1"><label>颜色</label><input type="color" id="nsColor" value="#E8EAF6"></div><div class="form-group" style="flex:1"><label>文字色</label><input type="color" id="nsText" value="#333"></div></div>
+      <div style="display:flex;gap:8px;"><div class="form-group" style="flex:1"><label>上班</label><input id="nsStart" value="09:00"></div><div class="form-group" style="flex:1"><label>下班</label><input id="nsEnd" value="18:00"></div></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="addShift()">添加</button></div>
+    </div></div>`;
+}
+function addShift(){
+  const code=document.getElementById('nsCode').value.trim();
+  if(!code||state.shifts.find(s=>s.code===code)){toast('代码为空或重复','warn');return;}
+  state.shifts.splice(state.shifts.length-1,0,{code,name:document.getElementById('nsName').value||code,color:document.getElementById('nsColor').value,textColor:document.getElementById('nsText').value,start:document.getElementById('nsStart').value,end:document.getElementById('nsEnd').value,maxConsecutive:5,minStaff:1});
+  saveState();closeModal();renderShiftConfig();toast('班次已添加');
+}
+function deleteShift(code){showConfirm(`删除班次 ${code}？`,()=>{state.shifts=state.shifts.filter(s=>s.code!==code);saveState();renderShiftConfig();toast('班次已删除');});}
+
+// ---- EMPLOYEE PAGE ----
+let _selectedEmps=new Set();
+function renderEmployeePage(){
+  const q=(document.getElementById('empSearch')?.value||'').toLowerCase();
+  const tf=document.getElementById('empTeamFilter')?.value||'';
+  const sf=document.getElementById('empStatusFilter')?.value||'all';
+  let list=state.employees;
+  if(q)list=list.filter(e=>e.name.toLowerCase().includes(q)||e.team.toLowerCase().includes(q));
+  if(tf)list=list.filter(e=>e.team===tf);
+  if(sf!=='all')list=list.filter(e=>(e.status||'active')===sf);
+  // update team filter options
+  const allTeams=[...new Set(state.employees.map(e=>e.team).filter(Boolean))];
+  const tsel=document.getElementById('empTeamFilter');if(tsel){tsel.innerHTML='<option value="">全部团队</option>'+allTeams.map(t=>`<option ${t===tf?'selected':''}>${t}</option>`).join('');}
+  document.getElementById('teamSuggestions').innerHTML=allTeams.map(t=>`<option value="${t}">`).join('');
+  if(!list.length){document.getElementById('empTable').innerHTML='<div class="empty-state"><span class="sq-icon">&#x1F465;</span>暂无匹配员工</div>';return;}
+  const shiftCodes=state.shifts.map(s=>s.code);
+  let h='<table class="data"><thead><tr><th>姓名</th><th>团队</th><th>日效</th><th>禁止班次</th><th>强制休息日</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  for(const emp of list){
+    const restCount=(emp.restDays||[]).filter(d=>d.startsWith(`${getCurrentPlan()?.year||2026}-${String(getCurrentPlan()?.month||7).padStart(2,'0')}`)).length;
+    h+=`<tr>
+      <td><input value="${emp.name}" onchange="updateEmpField('${emp.id}','name',this.value)" style="width:80px;border:none;background:transparent;"></td>
+      <td><input value="${emp.team}" list="teamSuggestions" onchange="updateEmpField('${emp.id}','team',this.value)" style="width:90px;border:none;background:transparent;"></td>
+      <td><input type="number" value="${emp.capacity}" onchange="updateEmpField('${emp.id}','capacity',+this.value)" style="width:60px;border:none;background:transparent;" title="日均接待能力"></td>
+      <td>${shiftCodes.filter(c=>c!=='R').map(c=>`<label style="font-size:11px;cursor:pointer;margin:0 2px;" title="${getShift(c).name}"><input type="checkbox" ${(emp.shiftBlacklist||[]).includes(c)?'checked':''} onchange="toggleShiftBlacklist('${emp.id}','${c}',this.checked)">${getShift(c).name}</label>`).join(' ')}</td>
+      <td><span onclick="showPickRestModal('${emp.id}')" style="cursor:pointer;color:var(--primary);font-size:12px;" title="点击编辑">${restCount>0?`${restCount}天`:''}</span> <button class="btn btn-xs" onclick="showPickRestModal('${emp.id}')" title="编辑强制休息日">+</button></td>
+      <td><span class="tag ${(emp.status||'active')==='active'?'green':'red'}">${(emp.status||'active')==='active'?'&#x1F7E2; 在职':'&#x1F534; 离职'}</span></td>
+      <td><button class="btn btn-xs" onclick="editEmployee('${emp.id}')">&#x270F; 编辑</button> <button class="btn btn-danger btn-xs" onclick="deleteEmployee('${emp.id}')">删除</button></td></tr>`;
+  }
+  h+='</tbody></table>';document.getElementById('empTable').innerHTML=h;
+}
+function updateEmpField(id,field,val){const e=state.employees.find(e=>e.id===id);if(e){e[field]=val;saveState();}}
+function toggleShiftBlacklist(empId,code,checked){
+  const e=state.employees.find(e=>e.id===empId);if(!e||!e.shiftBlacklist)e.shiftBlacklist=[];
+  if(checked){if(!e.shiftBlacklist.includes(code))e.shiftBlacklist.push(code);}else e.shiftBlacklist=e.shiftBlacklist.filter(c=>c!==code);
+  saveState();toast(`已${checked?'添加':'移除'}${code}班限制`);
+}
+function editEmployee(id){
+  const e=state.employees.find(e=>e.id===id);if(!e)return;
+  document.getElementById('modalContainer').innerHTML=`
+    <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal"><h3>编辑 ${e.name}</h3>
+      <div class="form-group"><label>姓名</label><input id="eeName" value="${e.name}"></div>
+      <div class="form-group"><label>团队</label><input id="eeTeam" list="teamSuggestions" value="${e.team}"></div>
+      <div class="form-group"><label>日效</label><input type="number" id="eeCap" value="${e.capacity}"></div>
+      <div class="form-group"><label>在职状态</label><select id="eeStatus"><option ${(e.status||'active')==='active'?'selected':''} value="active">在职</option><option ${e.status==='inactive'?'selected':''} value="inactive">离职</option></select></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveEditEmployee('${id}')">保存</button></div>
+    </div></div>`;
+}
+function saveEditEmployee(id){
+  const e=state.employees.find(e=>e.id===id);if(!e)return;
+  e.name=document.getElementById('eeName').value.trim()||e.name;
+  e.team=document.getElementById('eeTeam').value.trim()||e.team;
+  e.capacity=parseInt(document.getElementById('eeCap').value)||e.capacity;
+  e.status=document.getElementById('eeStatus').value;
+  saveState();closeModal();renderEmployeePage();toast('员工信息已更新');
+}
+function showAddEmployeeModal(){
+  document.getElementById('modalContainer').innerHTML=`
+    <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal"><h3>添加员工</h3>
+      <div class="form-group"><label>姓名</label><input id="neName" placeholder="员工姓名"></div>
+      <div class="form-group"><label>团队</label><input id="neTeam" list="teamSuggestions" value="默认团队"></div>
+      <div class="form-group"><label>日均接待能力</label><input type="number" id="neCap" value="250" title="每位客服每天可处理的接待量"></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="addEmployee()">添加</button></div>
+    </div></div>`;
+}
+function addEmployee(){
+  const name=document.getElementById('neName').value.trim();if(!name){toast('请输入姓名','warn');return;}
+  state.employees.push({id:'emp_'+Date.now(),name,team:document.getElementById('neTeam').value||'默认团队',capacity:parseInt(document.getElementById('neCap').value)||250,restDays:[],shiftBlacklist:[],status:'active'});
+  saveState();closeModal();renderEmployeePage();updateGlobalSelects();toast('员工已添加');
+}
+function deleteEmployee(id){showConfirm('删除该员工？',()=>{state.employees=state.employees.filter(e=>e.id!==id);_selectedEmps.delete(id);saveState();renderEmployeePage();toast('员工已删除');});}
+function toggleEmpSelect(id,checked){if(checked)_selectedEmps.add(id);else _selectedEmps.delete(id);updateBatchBar();}
+function updateBatchBar(){const bar=document.getElementById('batchBar');const cntEl=document.getElementById('batchCount');if(_selectedEmps.size>0){bar.classList.add('show');cntEl.textContent='已选 '+_selectedEmps.size+' 人';}else{bar.classList.remove('show');}}
+function clearBatch(){_selectedEmps.clear();updateBatchBar();renderEmployeePage();}
+function batchSetTeam(){const team=prompt('输入新团队名：');if(!team)return;state.employees.forEach(e=>{if(_selectedEmps.has(e.id))e.team=team;});saveState();clearBatch();toast('团队已批量更新');}
+function batchSetBlacklist(){const codes=prompt('输入禁止班次代码（逗号分隔，如 N,M）：');if(!codes)return;const arr=codes.split(/[,]/).map(s=>s.trim()).filter(Boolean);state.employees.forEach(e=>{if(_selectedEmps.has(e.id)){if(!e.shiftBlacklist)e.shiftBlacklist=[];e.shiftBlacklist=[...new Set([...e.shiftBlacklist,...arr])];}});saveState();clearBatch();toast('禁止班次已批量设置');}
+function showPickRestModal(empId){
+  const emp=state.employees.find(e=>e.id===empId);if(!emp)return;
+  const plan=getCurrentPlan();const numDays=plan?daysInMonth(plan.year,plan.month):31;
+  const restSet=new Set(emp.restDays||[]);
+  let daysHtml='';for(let d=1;d<=numDays;d++){const dk=plan?dateKey(plan.year,plan.month,d):'';const chk=restSet.has(dk)?'checked':'';daysHtml+=`<label style="display:inline-flex;align-items:center;width:14%;font-size:11px;margin:3px 1%;"><input type="checkbox" value="${dk}" ${chk}>${d}</label>`;}
+  document.getElementById('modalContainer').innerHTML=`
+    <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal" style="width:540px;"><h3>${emp.name} 强制休息日（已选${emp.restDays?emp.restDays.filter(d=>d.startsWith(`${plan.year}-${String(plan.month).padStart(2,'0')}`)).length:0}天）</h3>
+      <div style="max-height:260px;overflow-y:auto;">${daysHtml}</div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveRestDays('${empId}')">保存</button></div>
+    </div></div>`;
+}
+function saveRestDays(empId){
+  const emp=state.employees.find(e=>e.id===empId);if(!emp)return;emp.restDays=[];
+  document.querySelectorAll('#modalContainer input[type=checkbox]:checked').forEach(cb=>emp.restDays.push(cb.value));
+  saveState();closeModal();renderEmployeePage();toast('休息日已保存');
+}
+
+// ---- DATA PAGE ----
+function renderDataPage(){
+  if(_importHistory&&_importHistory.length>0){var hh='<div class="card" style="margin-bottom:16px;"><h3>最近导入记录</h3><table class="data"><thead><tr><th>类型</th><th>时间</th><th>条数</th></tr></thead><tbody>';_importHistory.forEach(function(h){hh+='<tr><td>'+h.type+'</td><td>'+h.time+'</td><td>'+h.count+(h.added!==void 0?" (新增"+h.added+")":"")+'</td></tr>'});hh+='</tbody></table></div>';document.getElementById("dataStats").insertAdjacentHTML("afterbegin",hh)}
+  const dtEl=document.getElementById('dailyTag');const dfp=document.getElementById('dailyFlowPreview');const htEl=document.getElementById('hourlyTag');const hfp=document.getElementById('hourlyFlowPreview');const ptEl=document.getElementById('predTag');const pfp=document.getElementById('predFlowPreview');
+  if(dtEl)dtEl.className='tag '+(state.flowDaily.length?'green':'gray');if(dtEl)dtEl.textContent=state.flowDaily.length?state.flowDaily.length+'行':'未导入';
+  if(htEl)htEl.className='tag '+(state.flowHourly.length?'green':'gray');if(htEl)htEl.textContent=state.flowHourly.length?state.flowHourly.length+'行':'未导入';
+  if(ptEl)ptEl.className='tag '+(state.predictedFlow.length?'green':'gray');if(ptEl)ptEl.textContent=state.predictedFlow.length?state.predictedFlow.length+'行':'未导入';
+  if(dfp)dfp.innerHTML=state.flowDaily.length?`日期: ${state.flowDaily[0]?.date||''} ~ ${state.flowDaily[state.flowDaily.length-1]?.date||''}`:'';
+  if(hfp)hfp.innerHTML='';
+  if(pfp)pfp.innerHTML='';
+  document.getElementById('dailyFlowTable').innerHTML=state.flowDaily.length?`<table class="data"><thead><tr><th>日期</th><th>GMV(万元)</th><th>接待量</th></tr></thead><tbody>${state.flowDaily.map(r=>`<tr><td>${r.date}</td><td>${(r.gmv||0).toFixed(1)}</td><td>${r.reception||0}</td></tr>`).join('')}</tbody></table>`:'<div class="empty-state"><span class="sq-icon">&#x1F4CA;</span>暂无每日流量数据<br><button class="btn btn-primary" onclick="document.getElementById(\'dailyFlowInp\').click()" style="margin-top:12px;">&#x1F4E5; 导入每日流量</button></div>';
+  if(state.historicalShifts.length){
+    document.getElementById('histShiftCard').style.display='';const months=[...new Set(state.historicalShifts.map(r=>r.date.slice(0,7)))];const sel=document.getElementById('histShiftMonthSel');sel.innerHTML='<option value="">全部月份</option>'+months.map(m=>`<option>${m}</option>`).join('');renderHistShiftPreview();
+  }else document.getElementById('histShiftCard').style.display='none';
+  if(state.flowHourly.length>0){document.getElementById('dataChartCard').style.display='';buildHourlyChart();}else document.getElementById('dataChartCard').style.display='none';
+  if(state.predictedFlow&&state.predictedFlow.length>0){document.getElementById('predChartCard').style.display='';buildPredChart();}else document.getElementById('predChartCard').style.display='none';
+  let s='';if(state.flowDaily.length){const aG=state.flowDaily.reduce((s,r)=>s+(r.gmv||0),0)/state.flowDaily.length,aR=state.flowDaily.reduce((s,r)=>s+(r.reception||0),0)/state.flowDaily.length;s=`<div class="stats-row"><div class="stat-card"><div class="val">${state.flowDaily.length}</div><div class="lbl">历史天数</div></div><div class="stat-card c3"><div class="val">${Math.round(aR)}</div><div class="lbl">日均接待</div></div></div>`;}
+  if(state.predictedFlow&&state.predictedFlow.length){const aP=state.predictedFlow.reduce((s,r)=>s+(r.predicted||r.reception||0),0)/state.predictedFlow.length;const tP=state.predictedFlow.reduce((s,r)=>s+(r.predicted||r.reception||0),0);s+=`<div class="stats-row"><div class="stat-card c4"><div class="val">${tP}</div><div class="lbl">总预测接待</div></div><div class="stat-card c3"><div class="val">${Math.round(aP)}</div><div class="lbl">日均预测</div></div></div>`;}
+  document.getElementById('dataStats').innerHTML=s;
+}
+function buildHourlyChart(){
+  if(!state.flowHourly.length){document.getElementById('dataChartCard').style.display='none';return;}document.getElementById('dataChartCard').style.display='';
+  const c=document.getElementById('hourlyChart');if(!c)return;const ctx=c.getContext('2d');const W=c.parentElement.clientWidth||600,H=210;c.width=W;c.height=H;
+  let wdC=0,weC=0;const wdS=new Array(24).fill(0),weS=new Array(24).fill(0);
+  for(const r of state.flowHourly){const d=new Date(r.date);const we=d.getDay()===0||d.getDay()===6;if(we){weC++;for(let h=0;h<24;h++)weS[h]+=(r['h'+h]||0);}else{wdC++;for(let h=0;h<24;h++)wdS[h]+=(r['h'+h]||0);}}
+  const wA=wdS.map(v=>wdC?Math.round(v/wdC):0),eA=weS.map(v=>weC?Math.round(v/weC):0);const maxV=Math.max(...wA,...eA,1);const pad=35,bw=Math.floor((W-pad*2)/48),ch=H-pad-25;
+  ctx.clearRect(0,0,W,H);ctx.font='10px sans-serif';ctx.textAlign='center';for(let h=0;h<=24;h+=4){ctx.fillText(h+'h',pad+h*((W-pad*2)/24),H-10);}
+  ctx.textAlign='right';for(let i=0;i<=5;i++){const v=Math.round(maxV*i/5);ctx.fillText(v,pad-6,H-25-(ch*i/5)+4);}
+  for(let h=0;h<24;h++){const x=pad+h*((W-pad*2)/24);ctx.fillStyle='#FF8C42';ctx.fillRect(x+1,H-25-wA[h]/maxV*ch,bw,wA[h]/maxV*ch);ctx.fillStyle='#FFD700';ctx.fillRect(x+1+bw,H-25-eA[h]/maxV*ch,bw,eA[h]/maxV*ch);}
+  ctx.fillStyle='#FF8C42';ctx.fillRect(W-150,12,10,10);ctx.fillText('工作日',W-136,21);ctx.fillStyle='#FFD700';ctx.fillRect(W-80,12,10,10);ctx.fillText('周末',W-66,21);
+}
+function buildPredChart(){
+  if(!state.predictedFlow||!state.predictedFlow.length){document.getElementById('predChartCard').style.display='none';return;}document.getElementById('predChartCard').style.display='';
+  const c=document.getElementById('predChart');if(!c)return;const ctx=c.getContext('2d');const W=c.parentElement.clientWidth||600,H=260;c.width=W;c.height=H;
+  const vals=state.predictedFlow.map(r=>r.predicted||r.reception||0);const maxV=Math.max(...vals,1);const len=vals.length;const pad=40,bw=(W-pad*2)/len-1,ch=H-pad-30;
+  ctx.clearRect(0,0,W,H);ctx.font='10px sans-serif';ctx.textAlign='center';
+  // axes
+  ctx.beginPath();ctx.strokeStyle='#ddd';ctx.moveTo(pad,pad);ctx.lineTo(pad,H-20);ctx.lineTo(W-pad,H-20);ctx.stroke();
+  const step=Math.max(1,Math.floor(len/15));
+  for(let i=0;i<len;i+=step){const x=pad+i*(bw+1);ctx.save();ctx.translate(x,H-10);ctx.rotate(-.5);ctx.fillText(state.predictedFlow[i].date.slice(5),0,0);ctx.restore();}
+  ctx.textAlign='right';for(let i=0;i<=5;i++){const v=Math.round(maxV*i/5);ctx.fillText(v,pad-6,H-20-(ch*i/5)+4);}
+  // gradient fill
+  const grd=ctx.createLinearGradient(0,H-20-ch,0,H-20);grd.addColorStop(0,'rgba(255,106,0,.35)');grd.addColorStop(1,'rgba(255,106,0,.02)');
+  ctx.beginPath();ctx.moveTo(pad,H-20);
+  for(let i=0;i<len;i++){const x=pad+i*(bw+1);const y=H-20-vals[i]/maxV*ch;ctx.lineTo(x,y);}
+  for(let i=len-1;i>=0;i--){const x=pad+i*(bw+1);ctx.lineTo(x,H-20);}
+  ctx.closePath();ctx.fillStyle=grd;ctx.fill();
+  // line
+  ctx.beginPath();ctx.strokeStyle='var(--primary)';ctx.lineWidth=2;
+  for(let i=0;i<len;i++){const x=pad+i*(bw+1);const y=H-20-vals[i]/maxV*ch;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.stroke();
+  // dots
+  for(let i=0;i<len;i+=step){const x=pad+i*(bw+1);const y=H-20-vals[i]/maxV*ch;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle='var(--primary)';ctx.fill();}
+  ctx.font='12px sans-serif';ctx.fillStyle='var(--primary)';ctx.textAlign='left';ctx.fillText('每日预估接待量',pad,pad);
+}
+let _predLoading=false;
+function runFlowPrediction(){
+  if(_predLoading)return;_predLoading=true;const btn=document.getElementById('predBtn');btn.classList.add('loading');btn.disabled=true;btn.textContent='预测中...';
+  setTimeout(()=>{doPrediction();},200);
+}
+function doPrediction(){
+  if(!state.flowDaily.length){toast('请先导入每日流量数据','warn');_predLoading=false;const btn=document.getElementById('predBtn');btn.classList.remove('loading');btn.disabled=false;btn.textContent='&#x1F52E; 运行预测';return;}
+  const lowR=parseFloat(document.getElementById('flowLowRatio').value)||2.5,hiT=parseFloat(document.getElementById('flowHighThreshold').value)||10,hiR=parseFloat(document.getElementById('flowHighRatio').value)||3.5,hCap=parseFloat(document.getElementById('flowHourlyCap').value)||30,eCap=parseFloat(document.getElementById('flowEveningCap').value)||40;
+  state.flowParams={lowRatio:lowR,highThreshold:hiT,highRatio:hiR,hourlyCap:hCap,eveningCap:eCap};
+  state.predictedFlow=state.flowDaily.map(r=>{const gmv=(r.gmv||0)/10000;const ratio=gmv<hiT?lowR:hiR;const predicted=Math.round(gmv*ratio);return{...r,predicted};});
+  saveState();
+  document.getElementById('predResultSummary').innerHTML=`<div style="padding:8px 0;font-size:13px;">&#x2705; 预测完成，共 <b>${state.predictedFlow.length}</b> 天数据已持久存储。<button class="btn btn-primary btn-sm" onclick="switchTab('tab-auto');autoMode='predicted';renderAutoPage();" style="margin-left:8px;">&#x26A1; 去排班</button></div>`;
+  document.getElementById('predFlowPreview').innerHTML=`<span class="tag green">已生成 ${state.predictedFlow.length} 天预测数据</span>`;
+  renderDataPage();buildPredChart();const predBtn=document.getElementById('predBtn');predBtn.classList.remove('loading');predBtn.disabled=false;predBtn.textContent='&#x1F52E; 运行预测';_predLoading=false;toast('预测完成！'+state.predictedFlow.length+'天数据就绪');
+  if(typeof renderAutoPage==='function')renderAutoPage();
+  document.getElementById('predChartCard').style.display='';buildPredChart();
+}
+
+// ---- CHAT PAGE ----
+function renderChatPage(){
+  const msgs=document.getElementById('chatMessages');
+  if(!msgs.innerHTML)msgs.innerHTML='';
+  // Render status tags
+  const plan=getCurrentPlan();const tags=[{l:'方案',v:plan?plan.year+'/'+plan.month+' '+plan.name:'无',c:'orange'},{l:'员工',v:state.employees.length+'人',c:'green'},{l:'班次',v:state.shifts.map(s=>s.name).join('/'),c:'orange'},{l:'大模型',v:'已配置'+state.llmConfigs.length+'个',c:state.llmConfigs.length?'green':'gray'},{l:'预测',v:state.predictedFlow&&state.predictedFlow.length?state.predictedFlow.length+'天':'未预测',c:state.predictedFlow&&state.predictedFlow.length?'green':'gray'}];
+  document.getElementById('chatCtxTags').innerHTML=tags.map(t=>`<span class="tag ${t.c}">${t.l}: ${t.v}</span>`).join('');
+  document.getElementById('chatWelcome').style.display=msgs.innerHTML?'none':'';
+}
+function buildChatContext(){
+  const plan=getCurrentPlan();const parts=['当前方案：'+(plan?`${plan.year}/${plan.month} ${plan.name}`:'无方案'),'员工：'+state.employees.length+'人','班次：'+state.shifts.map(s=>s.name).join('/'),'大模型：已配置'+state.llmConfigs.length+'个',state.predictedFlow&&state.predictedFlow.length?'预测数据：'+state.predictedFlow.length+'天就绪':'预测数据：未预测'];
+  return '\u{1F4CB} 系统状态\n'+parts.map((p,i)=>`${i+1}. ${p}`).join('\n');
+}
+function quickCmd(type){
+  const inp=document.getElementById('chatInput');const cmds={generate:'帮我生成排班，尽量减少员工连续晚班',check:'检查当前排班有哪些违规项',balance:'帮我均衡员工工作量，避免某些员工连续加班'};inp.value=cmds[type]||'';inp.focus();
+}
+async function sendChatMessage(){document.getElementById('chatWelcome').style.display='none';
+  const inp=document.getElementById('chatInput');const text=inp.value.trim();if(!text)return;addChatMessage('user',text);inp.value='';
+  const cfg=state.llmConfigs.find(c=>c.isDefault)||state.llmConfigs[0];
+  if(!cfg||!cfg.apiKey){addChatMessage('system','\u26A0 请在LLM配置页添加API Key并设为默认');return;}
+  const ctx=buildChatContext();const sys=`你是三只松鼠客服排班AI。${ctx}\n生成排班JSON: {schedule:{"YYYY-MM-DD":{"姓名":"E"}}}`;
+  addChatMessage('system','\u23F3 正在请求AI...');
+  try{
+    const resp=await fetch(cfg.baseURL+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},body:JSON.stringify({model:cfg.modelName,messages:[{role:'system',content:sys},{role:'user',content:text}],temperature:cfg.temperature||0.3,max_tokens:cfg.maxTokens||4096})});
+    const data=await resp.json();const reply=data.choices?.[0]?.message?.content||'AI未返回有效回复';addChatMessage('assistant',reply);
+    const m=reply.match(/\{[\s\S]*"schedule"[\s\S]*\}/);if(m){try{const p=JSON.parse(m[0]);if(p.schedule){const btn=document.createElement('button');btn.className='btn btn-primary btn-sm';btn.textContent='\u2705 一键应用到排班';btn.style.marginTop='8px';btn.onclick=()=>{showConfirm('应用AI排班？',()=>{const plan=getCurrentPlan();if(!plan||plan.locked){toast('方案锁定','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);for(const[dk,assign]of Object.entries(p.schedule)){sched[dk]=sched[dk]||{};for(const[nm,code]of Object.entries(assign)){const e=state.employees.find(x=>x.name===nm);if(e)sched[dk][e.id]=code;}}saveState();switchTab('tab-schedule');toast('AI排班已应用');});};document.getElementById('chatMessages').appendChild(btn);}}catch(e){}}
+  }catch(err){addChatMessage('system','\u274C 请求失败: '+err.message);}
+  saveState();
+}
+function addChatMessage(role,text){const msgs=document.getElementById('chatMessages');document.getElementById('chatWelcome').style.display='none';const div=document.createElement('div');div.className='chat-msg '+role;div.textContent=text;if(role!=='system'){const cb=document.createElement('button');cb.className='copy-btn';cb.textContent='复制';cb.onclick=()=>{navigator.clipboard.writeText(text);toast('已复制');};div.appendChild(cb);}msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
+function clearChat(){document.getElementById('chatMessages').innerHTML='';document.getElementById('chatWelcome').style.display='';renderChatPage();}
+function handleChatFile(event){const f=event.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:'array'});const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});const preview=data.slice(0,8).map(r=>r.join(', ')).join('\n');addChatMessage('user',`[文件: ${f.name}]\n${preview}\n...共${data.length}行`);}catch(e){toast('文件解析失败','error');}};r.readAsArrayBuffer(f);event.target.value='';}
+
+// ---- LLM CONFIG ----
+function renderLLMConfigs(){
+  const list=state.llmConfigs;if(!list.length){document.getElementById('llmConfigList').innerHTML='<div class="empty-state"><span class="sq-icon">&#x1F916;</span>暂无大模型配置<br><button class="btn btn-primary" onclick="addLLMConfig()" style="margin-top:14px;">+ 添加模型配置</button></div>';return;}
+  const providers={deepseek:'https://api.deepseek.com/v1',doubao:'https://ark.cn-beijing.volces.com/api/v3',qwen:'https://dashscope.aliyuncs.com/compatible-mode/v1',kimi:'https://api.moonshot.cn/v1'};
+  let h='';
+  for(let i=0;i<list.length;i++){const c=list[i];
+    h+=`<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <b>${c.provider||'未选择'}</b><span style="color:var(--muted);font-size:12px;">${c.modelName||''}</span>${c.isDefault?'<span class="tag orange">默认</span>':''}<span style="flex:1;"></span>
+        <span id="llmStatus${i}" style="font-size:11px;"></span>
+        <button class="btn btn-xs" onclick="setDefaultLLM(${i})">${c.isDefault?'已默认':'设默认'}</button>
+        <button class="btn btn-xs btn-outline" onclick="testLLMConnection(${i})">&#x1F50C; 测通</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteLLM(${i})">删除</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <select onchange="updateLLMField(${i},'provider',this.value)" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;"><option value="">选择厂商</option>${Object.keys(providers).map(p=>`<option ${c.provider===p?'selected':''}>${p}</option>`).join('')}</select>
+        <input value="${c.baseURL||''}" onchange="updateLLMField(${i},'baseURL',this.value)" placeholder="Base URL" style="width:240px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;">
+        <input value="${c.modelName||''}" onchange="updateLLMField(${i},'modelName',this.value)" placeholder="模型名" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;">
+        <div class="pwd-wrap" style="width:180px;">
+          <input type="password" value="${c.apiKey||''}" onchange="updateLLMField(${i},'apiKey',this.value)" placeholder="API Key" style="width:100%;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" id="llmKey${i}">
+          <button class="eye-btn" onclick="toggleKeyVisibility(${i})" title="显隐切换">&#x1F441;</button>
+        </div>
+        <input type="number" value="${c.temperature||0.3}" onchange="updateLLMField(${i},'temperature',parseFloat(this.value))" placeholder="温度" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" title="温度(0-2)">
+        <input type="number" value="${c.maxTokens||4096}" onchange="updateLLMField(${i},'maxTokens',parseInt(this.value))" placeholder="Token" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" title="最大Token数">
+        <input type="number" value="${c.timeout||30}" onchange="updateLLMField(${i},'timeout',parseInt(this.value))" placeholder="超时(s)" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;" title="请求超时(秒)">
+      </div></div>`;}
+  document.getElementById('llmConfigList').innerHTML=h;
+}
+function toggleKeyVisibility(i){
+  const inp=document.getElementById('llmKey'+i);if(!inp)return;inp.type=inp.type==='password'?'text':'password';
+}
+function addLLMConfig(){state.llmConfigs.push({provider:'deepseek',baseURL:'https://api.deepseek.com/v1',modelName:'deepseek-chat',apiKey:'',isDefault:state.llmConfigs.length===0,temperature:0.3,maxTokens:4096,timeout:30});saveState();renderLLMConfigs();toast('配置已添加');}
+function updateLLMField(idx,field,val){if(idx>=state.llmConfigs.length)return;state.llmConfigs[idx][field]=val;if(field==='provider'){const urls={deepseek:'https://api.deepseek.com/v1',doubao:'https://ark.cn-beijing.volces.com/api/v3',qwen:'https://dashscope.aliyuncs.com/compatible-mode/v1',kimi:'https://api.moonshot.cn/v1'};if(urls[val])state.llmConfigs[idx].baseURL=urls[val];}saveState();}
+function setDefaultLLM(idx){state.llmConfigs.forEach((c,i)=>c.isDefault=(i===idx));saveState();renderLLMConfigs();toast('默认配置已切换');}
+function deleteLLM(idx){showConfirm('删除该LLM配置？',()=>{state.llmConfigs.splice(idx,1);saveState();renderLLMConfigs();toast('配置已删除');});}
+async function testLLMConnection(idx){
+  const c=state.llmConfigs[idx];if(!c||!c.apiKey){toast('请先填写API Key','warn');return;}
+  const el=document.getElementById('llmStatus'+idx);if(el)el.innerHTML='<span style="color:var(--warn);">\u23F3 测试中...</span>';
+  try{
+    const r=await fetch(c.baseURL+'/models',{headers:{'Authorization':'Bearer '+c.apiKey}});
+    if(r.ok){if(el)el.innerHTML='<span style="color:var(--success);">\u2705 连通</span>';toast('连接成功','success');}
+    else{const msg=`连接失败: HTTP ${r.status}`;if(el)el.innerHTML=`<span style="color:var(--danger);">\u274C ${r.status}</span>`;toast(msg,'error');}
+  }catch(err){if(el)el.innerHTML='<span style="color:var(--danger);">\u274C 异常</span>';toast('连接异常: '+err.message,'error');}
+}
+
+// ---- IMPORT / EXPORT ----
+
+// ========== Import helpers ==========
+let _importHistory=[]; try{_importHistory=JSON.parse(localStorage.getItem("importHistory_v5")||"[]")}catch(e){_importHistory=[]}
+function saveImportHistory(e){_importHistory.unshift(e);if(_importHistory.length>5)_importHistory=_importHistory.slice(0,5);localStorage.setItem("importHistory_v5",JSON.stringify(_importHistory))}
+function validateFileExt(file,exts){if(!file)return false;const x=file.name.split(".").pop().toLowerCase();if(!exts.includes(x)){toast("请上传 "+exts.join("/")+" 格式文件","warn");return false}return true}
+function validateHeaders(rows,req,t){if(!rows||!rows.length)return{ok:false,msg:"文件为空"};const h=Object.keys(rows[0]).map(h=>h.trim().toLowerCase());const m=req.filter(r=>!h.some(hh=>hh.includes(r.toLowerCase())));if(m.length)return{ok:false,msg:"缺少必填列："+m.join("、")+"，请下载标准模板填写后重新导入"};return{ok:true}}
+function cleanRow(row){const c={};for(const[k,v]of Object.entries(row)){let val=v;if(typeof val==="string")val=val.trim();c[k.trim()]=val}return c}
+function smartParseDate(val){if(!val)return"";val=String(val).trim();if(/^\d{5}$/.test(val)){const d=new Date(1900,0,parseInt(val));return d.toISOString().slice(0,10)}const m=val.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");const d=new Date(val);if(!isNaN(d.getTime()))return d.toISOString().slice(0,10);return val.slice(0,10)}
+function smartParseNum(val){if(!val)return 0;if(typeof val==="number")return val;const s=String(val).replace(/[^\d.\-]/g,"");const n=parseFloat(s);return isNaN(n)?0:n}
+function showImportPreview(rows,type,onOk){
+  var pv="";for(var i=0;i<Math.min(rows.length,10);i++){var r=rows[i];pv+="<tr><td style='color:var(--muted);'>"+(i+1)+"</td>";for(var k in r)pv+="<td style='font-size:11px;max-width:120px;overflow:hidden;'>"+(r[k]||"")+"</td>";pv+="</tr>"}
+  var hd="";for(var k in rows[0]||{})hd+="<th>"+k+"</th>";
+  window._importCallback=onOk;
+  document.getElementById("modalContainer").innerHTML="<div class='modal-overlay' onclick='modalBgClose(event)'>"+"<div class='modal wide'><h3>导入预览 — "+type+"</h3>"+"<p style='font-size:12px;color:var(--muted);margin-bottom:8px;'>检测到 <b>"+rows.length+"</b> 条数据，前10条预览：</p>"+"<div style='max-height:300px;overflow:auto;'><table class='data'><thead><tr><th>#</th>"+hd+"</tr></thead><tbody>"+pv+"</tbody></table></div>"+"<div class='modal-footer'><button class='btn' onclick='closeModal();window._importCallback=null'>取消</button>"+"<button class='btn btn-primary' id='importConfirmBtn' onclick='var cb=window._importCallback;closeModal();window._importCallback=null;if(cb)cb()'>确认导入</button></div></div></div>"
+}
+function showImportErrors(errors,type){
+  const its=errors.map(e=>'<tr><td>'+(e.row||"?")+'</td><td style="text-align:left;color:var(--danger);">'+e.msg+'</td><td style="text-align:left;color:var(--muted);font-size:11px;">'+(e.hint||"")+'</td></tr>').join("");
+  document.getElementById("modalContainer").innerHTML='<div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal wide"><h3>'+type+' — 导入失败</h3><p style="font-size:12px;color:var(--muted);margin-bottom:8px;">共 '+errors.length+' 条数据存在问题：</p><div style="max-height:300px;overflow:auto;"><table class="data"><thead><tr><th>行号</th><th>错误原因</th><th>修正建议</th></tr></thead><tbody>'+its+'</tbody></table></div><div class="modal-footer"><button class="btn" onclick="downloadErrorXLSX()">下载错误明细</button><button class="btn btn-primary" onclick="closeModal()">知道了</button></div></div></div>';
+  window._lastErrors=errors
+}
+function downloadErrorXLSX(){if(!ensureXLSX()||!window._lastErrors)return;const d=window._lastErrors.map(e=>({行号:e.row||"",错误:e.msg,建议:e.hint||""}));XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(d),"错误"),"导入错误明细.xlsx");toast("错误明细已下载")}
+
+function findCol(row,aliases){for(const a of aliases){if(row[a]!==undefined)return row[a];}return null;}
+function parseDate(val){if(!val)return'';val=String(val);if(/^\d{5}$/.test(val)){const d=new Date(1900,0,parseInt(val));return d.toISOString().slice(0,10);}const m=val.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;return val.slice(0,10);}
+function importEmployees(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}const v=validateHeaders(raw,["姓名"],"员工导入");if(!v.ok){toast(v.msg,"error");event.target.value="";return}const errors=[],valid=[];raw.forEach((row,i)=>{const name=findCol(row,["姓名","name"]);if(!name){errors.push({row:i+3,msg:"缺少姓名",hint:"姓名列为必填"});return}valid.push(row)});if(errors.length){showImportErrors(errors,"员工导入");event.target.value="";return}showImportPreview(valid,"员工导入",function(){let added=0,dups=0;for(const row of valid){const name=String(findCol(row,["姓名","name"]));const ex=state.employees.find(e=>e.name===name);if(ex){ex.team=String(findCol(row,["团队","team","Team","经营体"])||ex.team);ex.capacity=parseInt(findCol(row,["日效","capacity","日均接待"]))||ex.capacity;dups++;continue}state.employees.push({id:"emp_"+Date.now()+"_"+added,name,team:String(findCol(row,["团队","team","Team","经营体"])||""),capacity:parseInt(findCol(row,["日效","capacity","日均接待"]))||250,restDays:[],shiftBlacklist:[],status:"active"});added++}saveState();renderEmployeePage();updateGlobalSelects();saveImportHistory({type:"员工导入",time:new Date().toLocaleString(),count:valid.length,added,dups});toast("导入完成：新增"+added+"人"+(dups>0?"，覆盖"+dups+"人":""))})}catch(err){toast("文件解析失败，请确认文件格式正确","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+function exportEmployees(){const data=state.employees.map(e=>({姓名:e.name,团队:e.team,日效:e.capacity,强制休息日:(e.restDays||[]).join(';'),禁止班次:(e.shiftBlacklist||[]).join(';')}));XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(data),'员工'),'客服排班-员工表.xlsx');toast('员工表已导出');}
+function downloadEmpTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([["姓名","团队","日效","强制休息日","禁止班次"],["张三","默认团队","250","2026-07-05,2026-07-12","N"]]);ws["!cols"]=[{wch:12},{wch:14},{wch:10},{wch:24},{wch:14}];XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"姓名","必填":"是","说明":"员工姓名","示例":"张三"},{"字段":"团队","必填":"否","说明":"所属团队/经营体","示例":"默认团队"},{"字段":"日效","必填":"否","说明":"日均接待能力，默认250","示例":"250"},{"字段":"强制休息日","必填":"否","说明":"多个日期用逗号分隔，格式YYYY-MM-DD","示例":"2026-07-05,2026-07-12"},{"字段":"禁止班次","必填":"否","说明":"禁止的班次代码，多个逗号分隔，E=早班 M=中班 N=晚班","示例":"N"}]);ns["!cols"]=[{wch:18},{wch:8},{wch:38},{wch:28}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"员工导入模板.xlsx");toast("模板已下载")}
+function importDailyFlow(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}const v=validateHeaders(raw,["日期"],"每日流量");if(!v.ok){toast(v.msg,"error");event.target.value="";return}const errors=[],rows=raw.map((row,i)=>{const date=smartParseDate(findCol(row,["日期","date"]));if(!date)errors.push({row:i+3,msg:"日期格式无法识别",hint:"请使用YYYY-MM-DD格式"});return{date,gmv:smartParseNum(findCol(row,["GMV","gmv"])),reception:smartParseNum(findCol(row,["接待量","reception","流量"]))}}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"每日流量");event.target.value="";return}showImportPreview(rows,"每日流量",function(){const map=new Map(state.flowDaily.map(r=>[r.date,r]));rows.forEach(r=>map.set(r.date,r));state.flowDaily=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();saveImportHistory({type:"每日流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+function downloadDailyTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([["日期","GMV(万)","接待量"],["2026-07-01","50.5","120"]]);ws["!cols"]=[{wch:14},{wch:12},{wch:10}];XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD，如2026-07-01","示例":"2026-07-01"},{"字段":"GMV(万)","必填":"否","说明":"当日GMV金额，单位万元","示例":"50.5"},{"字段":"接待量","必填":"否","说明":"当日客服接待总量","示例":"120"}]);ns["!cols"]=[{wch:18},{wch:8},{wch:34},{wch:18}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"每日流量导入模板.xlsx");toast("模板已下载")}
+function importHourlyFlow(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}const errors=[],rows=raw.map((row,i)=>{const obj={date:smartParseDate(findCol(row,["日期","date"]))};if(!obj.date)errors.push({row:i+3,msg:"日期格式无法识别"});for(let h=0;h<24;h++)obj["h"+h]=smartParseNum(row["h"+h]||row[h]||row[String(h)]);return obj}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"分时流量");event.target.value="";return}showImportPreview(rows.slice(0,10),"分时流量",function(){const map=new Map(state.flowHourly.map(r=>[r.date,r]));rows.forEach(r=>map.set(r.date,r));state.flowHourly=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();buildHourlyChart();saveImportHistory({type:"分时流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+function downloadHourlyTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const heads=["日期"];for(let h=0;h<24;h++)heads.push("h"+h);const sample=["2026-07-01"];for(let h=0;h<24;h++)sample.push(String(h*5+10));const ws=XLSX.utils.aoa_to_sheet([heads,sample]);ws["!cols"]=heads.map(()=>({wch:8}));XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD","示例":"2026-07-01"},{"字段":"h0~h23","必填":"否","说明":"0-23点每小时接待量，数值","示例":"10"}]);ns["!cols"]=[{wch:18},{wch:10},{wch:34},{wch:18}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"分时流量导入模板.xlsx");toast("模板已下载")}
+function importPredictedFlow(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}const errors=[],rows=raw.map((row,i)=>{const date=smartParseDate(findCol(row,["日期","date"]));if(!date)errors.push({row:i+3,msg:"日期格式无法识别"});const reception=smartParseNum(findCol(row,["接待量","reception","预测接待"]));const obj={date,reception,predicted:reception};for(let h=0;h<24;h++)obj["h"+h]=smartParseNum(row["h"+h]||row[h]);return obj}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"预测流量");event.target.value="";return}showImportPreview(rows,"预测流量",function(){const map=new Map(state.predictedFlow.map(r=>[r.date,r]));rows.forEach(r=>{r.predicted=r.reception;map.set(r.date,r)});state.predictedFlow=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();if(typeof renderAutoPage==="function")renderAutoPage();saveImportHistory({type:"已预测流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+function downloadPredictedTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([["日期","接待量"],["2026-07-01","120"]]);ws["!cols"]=[{wch:14},{wch:10}];XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD","示例":"2026-07-01"},{"字段":"接待量","必填":"是","说明":"预测当日接待量","示例":"120"}]);ns["!cols"]=[{wch:14},{wch:8},{wch:30},{wch:16}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"预测流量导入模板.xlsx");toast("模板已下载")}
+function importHistoricalShifts(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}const v=validateHeaders(raw,["姓名","日期"],"历史班次");if(!v.ok){toast(v.msg,"error");event.target.value="";return}const errors=[],rows=raw.map((row,i)=>{const name=String(findCol(row,["姓名","name","员工"]));const date=smartParseDate(findCol(row,["日期","date"]));const shift=String(findCol(row,["班次","shift"])).toUpperCase();if(!name)errors.push({row:i+3,msg:"缺少姓名"});if(!date)errors.push({row:i+3,msg:"日期格式错误"});if(!shift||!state.shifts.some(s=>s.code===shift))errors.push({row:i+3,msg:"班次“"+shift+"”无效",hint:"有效值: "+state.shifts.map(s=>s.code).join(",")});return{name,date,shift}}).filter(r=>r.name&&r.date&&r.shift);if(errors.length){showImportErrors(errors,"历史班次");event.target.value="";return}showImportPreview(rows,"历史班次",function(){state.historicalShifts=rows;saveState();renderDataPage();saveImportHistory({type:"历史班次",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+function downloadShiftsTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([["姓名","日期","班次"],["张三","2026-07-01","E"]]);ws["!cols"]=[{wch:12},{wch:14},{wch:8}];XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"姓名","必填":"是","说明":"员工姓名","示例":"张三"},{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD","示例":"2026-07-01"},{"字段":"班次","必填":"是","说明":"E=早班 M=中班 N=晚班 R=休息","示例":"E"}]);ns["!cols"]=[{wch:14},{wch:8},{wch:34},{wch:16}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"历史班次导入模板.xlsx");toast("模板已下载")}
+function exportAllData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='排班备份_'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('备份已下载');}
+function importAllData(event){const f=event.target.files[0];if(!f)return;showConfirm('导入将覆盖全部数据！',()=>{const r=new FileReader();r.onload=function(e){try{state=JSON.parse(e.target.result);saveState();initApp();toast('数据恢复成功');}catch(err){toast('文件格式错误','error');}};r.readAsText(f);});event.target.value='';}
+function exportScheduleCSV(){const plan=getCurrentPlan();if(!plan){toast('无方案','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);const numDays=daysInMonth(plan.year,plan.month);let csv='\uFEFF员工,';for(let d=1;d<=numDays;d++)csv+=mmdd(plan.year,plan.month,d)+',';csv+='\n';for(const emp of state.employees){csv+=emp.name+',';for(let d=1;d<=numDays;d++)csv+=(sched[dateKey(plan.year,plan.month,d)]?.[emp.id]||'R')+',';csv+='\n';}const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`排班_${plan.year}${plan.month}.csv`;a.click();toast('CSV已导出');}
+function exportScheduleExcel(){const plan=getCurrentPlan();if(!plan){toast('无方案','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);const numDays=daysInMonth(plan.year,plan.month);const data=[['员工',...Array.from({length:numDays},(_,i)=>mmdd(plan.year,plan.month,i+1))]];for(const emp of state.employees){const row=[emp.name];for(let d=1;d<=numDays;d++)row.push(sched[dateKey(plan.year,plan.month,d)]?.[emp.id]||'R');data.push(row);}const ws=XLSX.utils.aoa_to_sheet(data);XLSX.writeFile(XLSX.utils.book_new(ws,'排班'),`排班_${plan.year}${plan.month}.xlsx`);toast('日历已导出');}
+
+// ---- INIT ----
+
+let _savedRules=null;
+try{_savedRules=JSON.parse(localStorage.getItem("savedRules_v6")||"null")}catch(e){_savedRules=null}
+function saveRules(){
+  _savedRules={minRestDays:parseInt(document.getElementById("ruleMaxRestDays").value)||6,minConsecRest:parseInt(document.getElementById("ruleMinConsecRest").value)||1,maxE:parseInt(document.getElementById("ruleMaxE").value)||5,maxM:parseInt(document.getElementById("ruleMaxM").value)||5,maxN:parseInt(document.getElementById("ruleMaxN").value)||3,minE:parseInt(document.getElementById("ruleMinE").value)||1,minM:parseInt(document.getElementById("ruleMinM").value)||1,minN:parseInt(document.getElementById("ruleMinN").value)||0,maxMonthly:parseInt(document.getElementById("ruleMaxMonthlyWork").value)||26,minMonthly:parseInt(document.getElementById("ruleMinMonthlyWork").value)||0};
+  localStorage.setItem("savedRules_v6",JSON.stringify(_savedRules));
+  toast("规则已保存")
+}
+function loadRules(){
+  if(!_savedRules)return;
+  document.getElementById("ruleMaxRestDays").value=_savedRules.minRestDays||6;
+  document.getElementById("ruleMinConsecRest").value=_savedRules.minConsecRest||1;
+  document.getElementById("ruleMaxE").value=_savedRules.maxE||5;
+  document.getElementById("ruleMaxM").value=_savedRules.maxM||5;
+  document.getElementById("ruleMaxN").value=_savedRules.maxN||3;
+  document.getElementById("ruleMinE").value=_savedRules.minE||1;
+  document.getElementById("ruleMinM").value=_savedRules.minM||1;
+  document.getElementById("ruleMinN").value=_savedRules.minN||0;
+  document.getElementById("ruleMaxMonthlyWork").value=_savedRules.maxMonthly||26;
+  document.getElementById("ruleMinMonthlyWork").value=_savedRules.minMonthly||0;
+  validateRulesLive();
+}
+
+function initApp(){loadRules();updateGlobalSelects();renderSchedulePage();renderEmployeePage();renderLLMConfigs();renderAutoPage();renderDataPage();renderChatPage();}
+document.addEventListener('DOMContentLoaded',()=>{
+  loadState();
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+  document.getElementById('globalYear').addEventListener('change',()=>{const p=getCurrentPlan();if(p){p.year=parseInt(document.getElementById('globalYear').value);saveState();updateGlobalSelects();renderSchedulePage();renderAutoPage();}toast('已切换至 '+document.getElementById('globalYear').value+'年','info');});
+  document.getElementById('globalMonth').addEventListener('change',()=>{const p=getCurrentPlan();if(p){p.month=parseInt(document.getElementById('globalMonth').value);saveState();updateGlobalSelects();renderSchedulePage();renderAutoPage();}toast('已切换至 '+document.getElementById('globalMonth').value+'月','info');});
+  document.getElementById('globalPlan').addEventListener('change',()=>{state.currentPlanId=document.getElementById('globalPlan').value;const p=getCurrentPlan();if(p){document.getElementById('globalYear').value=p.year;document.getElementById('globalMonth').value=p.month;}saveState();renderSchedulePage();toast('方案已切换');});
+  document.getElementById('histShiftMonthSel')?.addEventListener('change',()=>renderHistShiftPreview());
+  // wire validation on all rule inputs
+  document.querySelectorAll('#tab-auto input[type=number]').forEach(inp=>inp.addEventListener('input',validateRulesLive));
+  initApp();validateRulesLive();
+});
+window.addEventListener('resize',()=>{if(document.getElementById('tab-data')?.classList.contains('active')){buildHourlyChart();buildPredChart();}});
+console.log('三只松鼠客服排班系统 v4 ready');
+/* Drag-drop for file inputs */
+setTimeout(function(){document.querySelectorAll("input[type=file]").forEach(function(inp){var w=inp.closest(".card")||inp.closest(".toolbar")||inp.parentElement;if(!w)return;w.style.position="relative";w.addEventListener("dragover",function(e){e.preventDefault();w.style.outline="2px dashed var(--primary)"});w.addEventListener("dragleave",function(){w.style.outline=""});w.addEventListener("drop",function(e){e.preventDefault();w.style.outline="";if(e.dataTransfer.files.length){inp.files=e.dataTransfer.files;inp.dispatchEvent(new Event("change"))}})})},600);
+</script>
+</body>
+</html>
