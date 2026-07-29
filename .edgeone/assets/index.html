@@ -1471,6 +1471,7 @@ function initApp(){
   try{renderLLMConfigs()}catch(e){}
   try{renderAutoPage()}catch(e){}
   try{renderDataPage()}catch(e){}
+  try{renderFlowPage()}catch(e){}
   try{renderChatPage()}catch(e){}
 }
 window.onerror=function(){document.querySelectorAll(".panel").forEach(function(p){p.style.display="block"});return false};document.addEventListener('DOMContentLoaded',()=>{
