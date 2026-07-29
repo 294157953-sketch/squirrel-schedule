@@ -1171,7 +1171,7 @@ function deleteShift(code){showConfirm(`删除班次 ${code}？`,()=>{state.shif
 
 // ---- EMPLOYEE PAGE ----
 let _selectedEmps=new Set();
-function renderEmployeePage(){var emps=state.employees||[];if(!emps.length){document.getElementById('tab-emp').innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F43F;</div><p>暂无员工数据</p><button class="btn btn-primary" onclick="addEmployee()">添加员工</button></div>';return}var filterTeam=(document.getElementById('empTeamFilter')||{}).value||'all';var filterStatus=(document.getElementById('empStatusFilter')||{}).value||'all';var search=(document.getElementById('empSearch')||{}).value||'';var filtered=emps.filter(function(e){if(filterStatus!=='all'&&e.status!==filterStatus)return false;if(filterTeam!=='all'&&(e.team||'默认团队')!==filterTeam)return false;if(search&&e.name&&e.name.indexOf(search)<0)return false;return true});window._filteredEmps=filtered;
+function renderEmployeePage(){
   const q=(document.getElementById('empSearch')?.value||'').toLowerCase();
   const tf=document.getElementById('empTeamFilter')?.value||'';
   const sf=document.getElementById('empStatusFilter')?.value||'all';
