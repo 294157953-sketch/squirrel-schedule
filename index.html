@@ -440,6 +440,7 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
 // ============================================================
 // 三只松鼠客服排班系统 v4 — Application Logic
 // ============================================================
+var _clearedOldState=function(){try{var r=localStorage.getItem("squirrel_schedule_v4");if(r){var s=JSON.parse(r);if(!s||!Array.isArray(s.plans)||!Array.isArray(s.employees)||!Array.isArray(s.shifts)){localStorage.removeItem("squirrel_schedule_v4");localStorage.removeItem("squirrel_schedule_v4_bak");return true}}return false}catch(e){try{localStorage.removeItem("squirrel_schedule_v4");localStorage.removeItem("squirrel_schedule_v4_bak");return true}catch(x){return false}}};
 const STORAGE_KEY='squirrel_schedule_v4',STORAGE_BACKUP='squirrel_schedule_v4_bak';
 const DEFAULT_SHIFTS=[
   {code:'E',name:'早班',color:'#E3F2FD',textColor:'#1565C0',start:'09:00',end:'18:00',maxConsecutive:5,minStaff:1,ch:'早'},
