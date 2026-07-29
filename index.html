@@ -356,7 +356,12 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
         <label data-tip="每天晚班最低当值人数">晚班最低人数<input id="ruleMinN" type="number" value="0" min="0" max="20" onchange="validateInput(this,0,20);validateRulesLive()"></label>
       </div>
       <div id="ruleValidationNote" style="margin-top:-6px;"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="autoRecommendRules()" data-tip="根据团队人数自动推荐合理规则配置">💡 智能推荐</button>
+        <span id="ruleRecommendTip" style="font-size:11px;color:var(--muted);line-height:28px;"></span>
+      </div>
     </div>
+    <div class="card"><h3>&#x1F3E2;
     <div class="card"><h3>&#x1F3E2;<div id="shiftConfig"></div></div>
     <div style="text-align:center;margin:20px 0;">
       <button class="btn btn-primary" onclick="generateAutoSchedule()" id="genBtn" style="font-size:16px;padding:12px 36px;">&#x26A1; 生成纯规则排班</button>
@@ -847,6 +852,39 @@ function generateAutoSchedule(){
   });
 }
 
+function autoRecommendRules(){
+  var totalEmps=state.employees.length;
+  if(!totalEmps){toast("请先添加员工","warn");return}
+  // Based on team size, recommend shift staffing
+  // 1 person: E/M/N = 1/0/0, 2 people: 1/1/0, 3: 1/1/1, 4: 2/1/1, 5: 2/2/1, 6+: 2/2/2
+  var minE=Math.min(totalEmps,Math.ceil(totalEmps/3));
+  var minM=Math.min(totalEmps-minE,Math.ceil((totalEmps-minE)/2));
+  var minN=Math.max(0,Math.min(totalEmps-minE-minM,Math.floor(totalEmps/3)));
+  if(totalEmps>=6){minE=2;minM=2;minN=2}
+  // Work/rest: ensure minWork + maxRest <= daysInMonth
+  var plan=getCurrentPlan();var nd=plan?daysInMonth(plan.year,plan.month):31;
+  // Each employee: work >= nd - maxRest and work <= nd
+  // With 3 shifts, need roughly totalEmps * avgWork slots per month
+  var minPerDay=minE+minM+minN;
+  // minWork should be at least ceil(minPerDay * nd / totalEmps) but not too high
+  var minMonthlyWork=Math.ceil(minPerDay*nd/totalEmps);
+  minMonthlyWork=Math.max(nd-10,Math.min(nd-4,minMonthlyWork));
+  var maxRestDays=nd-minMonthlyWork;
+  // Other rules
+  var minConsecRest=1,maxConsec=Math.min(5,Math.floor(nd/(maxRestDays||1)));
+  if(maxConsec<1)maxConsec=3;if(maxConsec>7)maxConsec=5;
+  // Apply to inputs
+  document.getElementById("ruleMaxRestDays").value=maxRestDays;
+  document.getElementById("ruleMinMonthlyWork").value=minMonthlyWork;
+  document.getElementById("ruleMinConsecRest").value=minConsecRest;
+  document.getElementById("ruleMaxConsec").value=maxConsec;
+  document.getElementById("ruleMinE").value=minE;
+  document.getElementById("ruleMinM").value=minM;
+  document.getElementById("ruleMinN").value=minN;
+  validateRulesLive();
+  document.getElementById("ruleRecommendTip").innerHTML="推荐配置：早"+minE+"人/中"+minM+"人/晚"+minN+"人，月休≤"+maxRestDays+"天，上班≥"+minMonthlyWork+"天";
+  toast("已应用智能推荐配置");
+}
 function resetGenBtn(){
   _genLoading=false;
   var btn=document.getElementById('genBtn');
