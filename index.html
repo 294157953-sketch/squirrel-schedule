@@ -841,7 +841,7 @@ function generateAutoSchedule(){
       doGenerate(d.plan,d.rules,d.modeLabel);
     }catch(e){
       console.error('Generation error:',e);
-      toast('排班生成失败，请稍后重试','error');
+      toast('排班生成失败，请检查规则配置或员工数量','error');
       resetGenBtn();
     }
   });
@@ -883,7 +883,7 @@ function doGenerate(plan,rules,modeLabel){
   // Check feasibility
   if(totalWorkNeeded>totalEmps*(numDays-rules.maxRestDays)){
     var maxPossible=totalEmps*(numDays-rules.maxRestDays);
-    toast('当前规则无法满足：总需求人力('+totalWorkNeeded+')超过最大可排人力('+maxPossible+')，建议减少班次最低人数或增加员工','error');
+    var minE=rules.minE||0,minM=rules.minM||0,minN=rules.minN||0;var dailyMin=minE+minM+minN;toast('当前规则无法满足：每日最低需要 '+dailyMin+' 人当值（早'+minE+'+中'+minM+'+晚'+minN+'），团队仅 '+totalEmps+' 人。建议减少最低人数或增加员工','error');
     resetGenBtn();return;
   }
   if(minWork>numDays-rules.maxRestDays){
