@@ -500,6 +500,7 @@ function showConfirm(msg,onOk){
 }
 
 // ---- TAB SWITCHING ----
+function updateGlobalSelects(){var plan=getCurrentPlan();var sel=document.getElementById("globalPlan");if(sel){sel.innerHTML=state.plans.map(function(p){return "<option value=\""+p.id+"\""+(p.id===state.currentPlanId?" selected":"")+">"+p.name+"</option>"}).join("")}if(!state.plans.length&&sel)sel.innerHTML="<option value=\"\">请创建方案</option>"}
 function switchTab(tabId){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -672,7 +673,10 @@ function jumpToViolation(idx){
 
 // ---- VALIDATION ENGINE ----
 function validateSchedule(planId,year,month){
-  var v=[],plan=state.plans.find(function(p){return p.id===planId});if(!plan)var merged=[];var seen={};for(var i=0;i<v.length;i++){var key=v[i].empId+"_"+v[i].msg.split(":")[0];if(!seen[key]){seen[key]=1;merged.push(v[i])}}return merged;
+  var v=[],plan=state.plans.find(function(p){return p.id===planId});if(!plan)return v;
+  var sched=getSchedule(planId,year,month),numDays=daysInMonth(year,month),emps=state.employees;
+  var rules=getAutoRules();
+  var maxConsec={};state.shifts.forEach(function(s){maxConsec[s.code]=s.maxConsecutive});
   var sched=getSchedule(planId,year,month),numDays=daysInMonth(year,month),emps=state.employees;
   var rules=getAutoRules();
   var maxConsec={};state.shifts.forEach(function(s){maxConsec[s.code]=s.maxConsecutive});
@@ -696,7 +700,7 @@ function validateSchedule(planId,year,month){
     // maxMonthlyWork removed
     if(rules.minMonthlyWork>0&&workCount<rules.minMonthlyWork)v.push({empId:emp.id,empName:emp.name,date:dateKey(year,month,1),msg:'R5:上班'+workCount+'<下限'+rules.minMonthlyWork+'天'});
   }
-  return v;
+  var merged=[];var seen={};for(var i=0;i<v.length;i++){var key=v[i].empId+"_"+v[i].msg.split(":")[0];if(!seen[key]){seen[key]=1;merged.push(v[i])}}return merged;
 }
 
 // ---- COPY / FILL / LOCK ----
@@ -780,7 +784,7 @@ function getPredictedDemands(year,month,numDays){
   }else{
     // Pure rule mode: calculate based on minStaff requirements
     var rules=getAutoRules();
-    var minPerDay=Math.max(rules.minE||1,rules.minM||1,rules.minN||0);
+    var minPerDay=(rules.minE||0)+(rules.minM||0)+(rules.minN||0);
     // Each day needs at least sum of minStaff across all shifts
     var dailyNeed=0;
     for(var si=0;si<state.shifts.length;si++){
