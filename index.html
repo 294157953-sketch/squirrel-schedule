@@ -750,7 +750,7 @@ function validateSchedule(planId,year,month){var v=[],plan=state.plans.find(func
     // maxMonthlyWork removed
     if(rules.minMonthlyWork>0&&workCount<rules.minMonthlyWork)v.push({empId:emp.id,empName:emp.name,date:dateKey(year,month,1),msg:'R5:上班'+workCount+'<下限'+rules.minMonthlyWork+'天'});
   }
-  return v;
+  var merged=[];var seen={};for(var i=0;i<v.length;i++){var key=v[i].empId+"_"+v[i].msg.split(":")[0];if(!seen[key]){seen[key]=1;merged.push(v[i])}}return merged;
 }
 
 // ---- COPY / FILL / LOCK ----
@@ -807,7 +807,7 @@ function renderAutoPage(){
   }
 }
 
-function getAutoRules(){var f=function(x){return parseInt(document.getElementById(x)?.value)||0};return{maxRestDays:f("ruleMaxRestDays")||6,minMonthlyWork:f("ruleMinMonthlyWork")||20,minConsecRest:f("ruleMinConsecRest")||1,maxConsec:f("ruleMaxConsec")||5,minE:f("ruleMinE")||1,minM:f("ruleMinM")||1,minN:f("ruleMinN")||0}}
+function getAutoRules(){var f=function(x){return parseInt(document.getElementById(x)?.value)||0};return{maxRestDays:f("ruleMaxRestDays")||6,minMonthlyWork:f("ruleMinMonthlyWork")||20,minConsecRest:1,maxConsec:5,minE:1,minM:1,minN:0}}
 function getPredictedDemands(year,month,numDays){
   var demands=[];for(var d=1;d<=numDays;d++)demands.push({staff:0,reception:0});
   var totalEmps=state.employees.length;
@@ -907,6 +907,19 @@ function generateAutoSchedule(){
 }
 
 function autoRecommendRules(){
+  var totalEmps=state.employees.length;
+  if(!totalEmps){toast("请先添加员工","warn");return}
+  var nd=daysInMonth(2026,7);var plans=getCurrentPlan();if(plans)nd=daysInMonth(plans.year,plans.month);
+  // Default: max 6 rest days, min 20 work days for balanced schedule
+  var maxRest=Math.min(nd-15,10);
+  var minWork=nd-maxRest;
+  document.getElementById("ruleMaxRestDays").value=maxRest;
+  document.getElementById("ruleMinMonthlyWork").value=minWork;
+  validateRulesLive();
+  document.getElementById("ruleRecommendTip").innerHTML="月休≤"+maxRest+"天，上班≥"+minWork+"天（"+totalEmps+"人团队推荐）";
+  toast("已应用推荐配置");
+}
+function autoRecommendRules_legacy(){
   var totalEmps=state.employees.length;
   if(!totalEmps){toast("请先添加员工","warn");return}
   var minE=Math.min(totalEmps,Math.ceil(totalEmps/3));
