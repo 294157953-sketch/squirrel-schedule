@@ -307,7 +307,7 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
     <div class="toolbar"><div class="toolbar-left">
       <button class="btn btn-primary" onclick="batchSetRest()" title="批量设置指定日期的所有员工为休息">🛏 批量休息</button>
       <button class="btn btn-secondary" onclick="batchRotate()" title="将所有员工班次轮换一次（早→中→晚→休息）">🔄 轮换班次</button>
-      <button class="btn" onclick="generateAssessmentReport(event)">📊 评估报告</button>
+      <button class="btn" onclick="generateAssessmentReport();return false;">📊 评估报告</button>
       <button class="btn btn-primary" onclick="exportScheduleCSV()">📥 导出CSV</button>
       <button class="btn btn-secondary" id="undoBtn" onclick="undoSchedule()" disabled title="撤销最近一次修改">↩ 撤销</button>
       <button class="btn" onclick="exportScheduleExcel()">&#x1F4C4; 导出日历</button>
@@ -575,7 +575,7 @@ function isCellLocked(dateKey,empId){
   if(!window._lockedCells)return false;
   return !!window._lockedCells[dateKey+"_"+empId];
 }
-try{localStorage.setItem(STORAGE_BACKUP,JSON.stringify(state));localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){}
+
 function getCurrentPlan(){return state.plans.find(p=>p.id===state.currentPlanId)||state.plans[0];}
 function daysInMonth(y,m){return new Date(y,m,0).getDate();}
 function dateKey(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
@@ -773,7 +773,7 @@ function renderSchedulePage(){
       <div><h2>${plan.year}年${plan.month}月 · ${plan.name}</h2>
         <div style="font-size:13px;opacity:.85;margin-top:4px;">${plan.team||''} | ${emps.length}人 ${plan.notes?`| ${plan.notes}`:''}</div><div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div><div style="font-size:11px;opacity:.7;margin-top:2px;">排班进度 ${pct}% (${filled}/${totalSlots})</div></div>
       <div class="hero-stats">
-        <span class="vcount" role="button" tabindex="0" onclick="event.stopPropagation();if(event&&event.preventDefault)event.preventDefault();${vCount>0?`showViolationDetail('tab-schedule')`:'return false'};return false;" style="cursor:pointer;text-decoration:underline;">${vCount>0?`&#x26A0; ${vCount}项违规（点击查看）`:`&#x2705; 无违规`}</span>
+        <span class="vcount" role="button" tabindex="0" onclick="${vCount>0?`showViolationDetail('tab-schedule')`:'void(0)'};return false;" style="cursor:pointer;text-decoration:underline;">${vCount>0?`&#x26A0; ${vCount}项违规（点击查看）`:`&#x2705; 无违规`}</span>
         <span class="badge ${plan.locked?'locked':'unlocked'}">${plan.locked?'&#x1F512; 已锁定':'&#x1F513; 编辑中'}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -838,8 +838,7 @@ function sortStats(key){_statsSort=key;const d=window._statsData;if(!d){renderSc
 
 // ---- VIOLATION DETAIL MODAL ----
 let cachedViolations=[];
-function showViolationDetail(tabId){try{event&&event.preventDefault&&event.preventDefault();event&&event.stopPropagation&&event.stopPropagation();}catch(e){}
-  var plan=getCurrentPlan();if(!plan)return;
+function showViolationDetail(tabId){var plan=getCurrentPlan();if(!plan)return;
   var vs=validateSchedule(plan.id,plan.year,plan.month);
   var hard=[],soft=[];
   vs.forEach(function(v){
@@ -847,7 +846,7 @@ function showViolationDetail(tabId){try{event&&event.preventDefault&&event.preve
     if(msg.indexOf("R1")>=0||msg.indexOf("R4")>=0||msg.indexOf("R5")>=0||msg.indexOf("R2")>=0||msg.indexOf("R7")>=0)hard.push(v);
     else soft.push(v);
   });
-  var html='<div class="violation-modal" style="max-height:70vh;overflow:auto;"><h3>排班违规检查</h3>';
+  var html='<div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal" style="max-width:560px;max-height:70vh;overflow:auto;"><h3>排班违规检查</h3>';
   html+='<div style="display:flex;gap:8px;margin:8px 0;"><span style="background:#C62828;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">🔴 硬性违规 '+hard.length+'</span><span style="background:#E65100;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">🟡 优化建议 '+soft.length+'</span></div>';
   if(hard.length){
     html+='<div style="margin:8px 0;"><b style="color:#C62828;">🔴 硬性违规（必须修复）：</b><ul style="margin:4px 0;font-size:12px;">';
@@ -859,8 +858,8 @@ function showViolationDetail(tabId){try{event&&event.preventDefault&&event.preve
     soft.forEach(function(v){html+='<li><b>'+v.empName+'</b> '+v.date+' '+v.msg+'</li>'});
     html+='</ul></div>';
   }
-  if(hard.length>0)html+='<button class="btn btn-primary" onclick="autoOptimize()">🔧 一键均衡优化</button> ';
-  html+='<button class="btn" onclick="closeModal()">关闭</button></div>';
+  if(hard.length>0)html+='<button class="btn btn-primary" onclick="autoOptimize();return false;">🔧 一键均衡优化</button> ';
+  html+='<button class="btn" onclick="closeModal();return false;">关闭</button></div></div>';
   document.getElementById("modalContainer").innerHTML=html;
 }
 function autoOptimize(){
@@ -973,7 +972,7 @@ function copyLastMonth(){
     saveState();renderSchedulePage();toast('已复制上月排班');
   });
 }
-function generateAssessmentReport(event){if(event&&event.preventDefault){event.preventDefault();event.stopPropagation();}
+function generateAssessmentReport(){
   var plan=getCurrentPlan();if(!plan)return;
   var sched=getSchedule(plan.id,plan.year,plan.month);
   var nd=daysInMonth(plan.year,plan.month);
@@ -1005,7 +1004,7 @@ function generateAssessmentReport(event){if(event&&event.preventDefault){event.p
     state.employees.forEach(function(emp){var c=sched[dk]&&sched[dk][emp.id]?sched[dk][emp.id]:null;if(c==="E")e++;if(c==="M")m++;if(c==="N")n++});
     if(e<(rules.minE||1)||m<(rules.minM||1)||n<(rules.minN||0))tightDays.push({d:d,dk:dk,E:e,M:m,N:n});
   }
-  var html='<div style="max-height:60vh;overflow:auto;"><h3>📊 排班评估报告</h3>';
+  var html='<div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal" style="max-width:600px;max-height:70vh;overflow:auto;"><h3>📊 排班评估报告</h3>';
   html+='<div style="display:flex;gap:8px;margin:8px 0;"><span style="background:#C62828;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">🔴 硬性违规 '+hards.length+'</span><span style="background:#E65100;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">🟡 优化建议 '+softs.length+'</span></div>';
   html+='<b>工作量均衡：</b><br>上班天: '+minW+'~'+maxW+' (差值'+(maxW-minW)+')<br>休息天: '+minR+'~'+maxR+' (差值'+(maxR-minR)+')<br>';
   if(tightDays.length){
@@ -1016,7 +1015,7 @@ function generateAssessmentReport(event){if(event&&event.preventDefault){event.p
   }
   html+='<b>优化建议：</b><br><ul style="font-size:12px;"><li>工作量极差'+(maxW-minW)+'天，建议进一步均衡</li>';
   if(tightDays.length)html+='<li>'+tightDays.length+'天人力不足，考虑调整班次最低人数配置</li>';
-  html+='</ul></div>';
+  html+='</ul></div></div></div>';
   document.getElementById("modalContainer").innerHTML=html;
 }
 function fillRestForAll(){
@@ -1510,7 +1509,7 @@ function showAddShiftModal(){
       <div class="form-group"><label>名称</label><input id="nsName"></div>
       <div style="display:flex;gap:8px;"><div class="form-group" style="flex:1"><label>颜色</label><input type="color" id="nsColor" value="#E8EAF6"></div><div class="form-group" style="flex:1"><label>文字色</label><input type="color" id="nsText" value="#333"></div></div>
       <div style="display:flex;gap:8px;"><div class="form-group" style="flex:1"><label>上班</label><input id="nsStart" value="09:00"></div><div class="form-group" style="flex:1"><label>下班</label><input id="nsEnd" value="18:00"></div></div>
-      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="addShift()">添加</button></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal();return false;">取消</button><button class="btn btn-primary" onclick="addShift()">添加</button></div>
     </div></div>`;
 }
 function addShift(){
@@ -1565,7 +1564,7 @@ function editEmployee(id){
       <div class="form-group"><label>团队</label><input id="eeTeam" list="teamSuggestions" value="${e.team}"></div>
       <div class="form-group"><label>日效</label><input type="number" id="eeCap" value="${e.capacity}"></div>
       <div class="form-group"><label>在职状态</label><select id="eeStatus"><option ${(e.status||'active')==='active'?'selected':''} value="active">在职</option><option ${e.status==='inactive'?'selected':''} value="inactive">离职</option></select></div>
-      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveEditEmployee('${id}')">保存</button></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal();return false;">取消</button><button class="btn btn-primary" onclick="saveEditEmployee('${id}')">保存</button></div>
     </div></div>`;
 }
 function saveEditEmployee(id){
@@ -1582,7 +1581,7 @@ function showAddEmployeeModal(){
       <div class="form-group"><label>姓名</label><input id="neName" placeholder="员工姓名"></div>
       <div class="form-group"><label>团队</label><input id="neTeam" list="teamSuggestions" value="默认团队"></div>
       <div class="form-group"><label>日均接待能力</label><input type="number" id="neCap" value="250" title="每位客服每天可处理的接待量"></div>
-      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="addEmployee()">添加</button></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal();return false;">取消</button><button class="btn btn-primary" onclick="addEmployee()">添加</button></div>
     </div></div>`;
 }
 function addEmployee(){
@@ -1604,7 +1603,7 @@ function showPickRestModal(empId){
   document.getElementById('modalContainer').innerHTML=`
     <div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal" style="width:540px;"><h3>${emp.name} 强制休息日（已选${emp.restDays?emp.restDays.filter(d=>d.startsWith(`${plan.year}-${String(plan.month).padStart(2,'0')}`)).length:0}天）</h3>
       <div style="max-height:260px;overflow-y:auto;">${daysHtml}</div>
-      <div class="modal-footer"><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveRestDays('${empId}')">保存</button></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal();return false;">取消</button><button class="btn btn-primary" onclick="saveRestDays('${empId}')">保存</button></div>
     </div></div>`;
 }
 function saveRestDays(empId){
@@ -1885,7 +1884,7 @@ function showImportPreview(rows,type,onOk){
 }
 function showImportErrors(errors,type){
   const its=errors.map(e=>'<tr><td>'+(e.row||"?")+'</td><td style="text-align:left;color:var(--danger);">'+e.msg+'</td><td style="text-align:left;color:var(--muted);font-size:11px;">'+(e.hint||"")+'</td></tr>').join("");
-  document.getElementById("modalContainer").innerHTML='<div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal wide"><h3>'+type+' — 导入失败</h3><p style="font-size:12px;color:var(--muted);margin-bottom:8px;">共 '+errors.length+' 条数据存在问题：</p><div style="max-height:300px;overflow:auto;"><table class="data"><thead><tr><th>行号</th><th>错误原因</th><th>修正建议</th></tr></thead><tbody>'+its+'</tbody></table></div><div class="modal-footer"><button class="btn" onclick="downloadErrorXLSX()">下载错误明细</button><button class="btn btn-primary" onclick="closeModal()">知道了</button></div></div></div>';
+  document.getElementById("modalContainer").innerHTML='<div class="modal-overlay" onclick="modalBgClose(event)"><div class="modal wide"><h3>'+type+' — 导入失败</h3><p style="font-size:12px;color:var(--muted);margin-bottom:8px;">共 '+errors.length+' 条数据存在问题：</p><div style="max-height:300px;overflow:auto;"><table class="data"><thead><tr><th>行号</th><th>错误原因</th><th>修正建议</th></tr></thead><tbody>'+its+'</tbody></table></div><div class="modal-footer"><button class="btn" onclick="downloadErrorXLSX()">下载错误明细</button><button class="btn btn-primary" onclick="closeModal();return false;">知道了</button></div></div></div>';
   window._lastErrors=errors
 }
 function downloadErrorXLSX(){if(!ensureXLSX()||!window._lastErrors)return;const d=window._lastErrors.map(e=>({行号:e.row||"",错误:e.msg,建议:e.hint||""}));XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(d),"错误"),"导入错误明细.xlsx");toast("错误明细已下载")}
