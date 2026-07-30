@@ -319,7 +319,17 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
       <div class="chat-box">
         <div class="chat-welcome" id="chatWelcome">&#x1F43F; 你可以用自然语言描述排班需求<br>我会帮你生成、调整或诊断排班方案</div>
         <div class="chat-status" id="chatCtxTags"></div>
-        <div class="quick-cmds">
+        <div class="scene-select" style="margin:8px 0;display:flex;align-items:center;gap:8px;font-size:12px;">
+    <span style="color:var(--muted);">场景：</span>
+    <select id="chatScene" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+      <option value="daily">日常排班</option>
+      <option value="peak">大促高峰</option>
+      <option value="weekend">周末优化</option>
+      <option value="new">新员工融入</option>
+      <option value="inspect">健康检查</option>
+    </select>
+  </div>
+  <div class="quick-cmds">
           <button class="quick-cmd" onclick="quickCmd('generate')">&#x26A1; 生成排班</button>
           <button class="quick-cmd" onclick="quickCmd('check')">&#x1F50D; 检查违规</button>
           <button class="quick-cmd" onclick="quickCmd('balance')">&#x2696; 均衡工作量</button>
@@ -1494,7 +1504,16 @@ function buildChatContext(){
   return '\u{1F4CB} 系统状态\n'+parts.map((p,i)=>`${i+1}. ${p}`).join('\n');
 }
 function quickCmd(type){
-  const inp=document.getElementById('chatInput');const cmds={generate:'帮我生成排班，尽量减少员工连续晚班',check:'检查当前排班有哪些违规项',balance:'帮我均衡员工工作量，避免某些员工连续加班'};inp.value=cmds[type]||'';window._chatMode=type;inp.focus();
+  const inp=document.getElementById('chatInput');
+  const sc=(document.getElementById('chatScene')||{}).value||'daily';
+  const T={
+    daily:{generate:'帮我生成均衡排班，避免连续晚班',check:'检查当前排班违规项',balance:'帮我均衡员工工作量'},
+    peak:{generate:'大促排班：重点覆盖晚班(16:00-01:00)高峰人力',check:'检查大促排班晚高峰覆盖',balance:'调大晚班占比'},
+    weekend:{generate:'周末排班：减少人力但保持服务覆盖',check:'周末人力缺口检查',balance:'周末轮休安排'},
+    new:{generate:'新员工排班：与老员工搭档，不单独晚班',check:'新员工排班合规检查',balance:'新老员工搭配均衡'},
+    inspect:{generate:'全面诊断当前排班方案',check:'深度检查违规和优化点',balance:'重算最优分配'}
+  };
+  inp.value=T[sc]?T[sc][type]||'':'';window._chatMode=type;inp.focus();
 }
 async function sendChatMessage(){
   document.getElementById('chatWelcome').style.display='none';
@@ -1505,7 +1524,7 @@ async function sendChatMessage(){
   inp.value='';
   const cfg=state.llmConfigs.find(c=>c.isDefault)||state.llmConfigs[0];
   if(!cfg||!cfg.apiKey){addChatMessage('system','\u26A0 \u8BF7\u5728LLM\u914D\u7F6E\u9875\u6DFB\u52A0API Key\u5E76\u8BBE\u4E3A\u9ED8\u8BA4');return;}
-  const ctx=buildChatContext();
+  const ctx=buildChatContext()+(window._chatMode?' 场景:'+((document.getElementById('chatScene')||{}).value||'daily'):'');
   const isGen=window._chatMode==='generate';
   const sys=`\u4F60\u662F\u4E09\u53EA\u677E\u9F20\u5BA2\u670D\u6392\u73EDAI\u3002${ctx}`+(isGen?'\n\u751F\u6210\u6392\u73EDJSON: {schedule:{"YYYY-MM-DD":{"\u59D3\u540D":"E"}}}':'');
   addChatMessage('system','\u23F3 \u6B63\u5728\u8BF7\u6C42AI...');
