@@ -1183,13 +1183,14 @@ function doGenerate(plan,rules,modeLabel){
       while(emp.shiftBlacklist&&emp.shiftBlacklist.indexOf(code)>=0&&tries<3){si++;code=shiftOrder[si%3];tries++}
       // N→E break
       if(prevDayCode[emp.id]==='N'&&code==='E')code='M';
-      // Max consecutive check
+      // Max consecutive WORK check (any non-R shift counts)
       var cons=1;
       for(var pd=d-1;pd>=1;pd--){
         var pdk=dateKey(plan.year,plan.month,pd);
-        if(sched[pdk]&&sched[pdk][emp.id]===code)cons++;else break;
+        var pc=sched[pdk]&&sched[pdk][emp.id]?sched[pdk][emp.id]:null;
+        if(pc&&pc!=='R')cons++;else break;
       }
-      if(cons>=maxConsec[code]){
+      if(cons>=rules.maxConsec){
         // Try next shift
         var original=code;
         si++;code=shiftOrder[si%3];
