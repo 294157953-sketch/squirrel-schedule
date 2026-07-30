@@ -347,7 +347,7 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
         <label data-tip="当月最多休息天数">每月最多休息<input id="ruleMaxRestDays" type="number" value="6" min="0" max="15" onchange="validateInput(this,0,15);validateRulesLive()"></label>
         <label data-tip="当月最少上班天数">每月最少上班<input id="ruleMinMonthlyWork" type="number" value="20" min="10" max="31" onchange="validateInput(this,10,31);validateRulesLive()"></label>
         
-        <label data-tip="任意班次连续上班上限">连续上班上限<input id="ruleMaxConsec" type="number" value="5" min="1" max="10" onchange="validateInput(this,1,10);validateRulesLive()"></label>
+        <label data-tip="任意班次最大连续上班天数">最大连续上班天数<input id="ruleMaxConsec" type="number" value="6" min="1" max="10" onchange="validateInput(this,1,10);validateRulesLive()"></label>
       </div>
       
       <div id="ruleValidationNote" style="margin-top:-6px;"></div><div style="margin-top:10px;display:flex;gap:8px;"><button class="btn btn-secondary" onclick="autoRecommendRules()">💡 智能推荐</button><span id="ruleRecommendTip" style="font-size:11px;color:var(--muted);line-height:28px;"></span></div>
@@ -862,7 +862,7 @@ function renderAutoPage(){
   }
 }
 
-function getAutoRules(){var f=function(x){return parseInt(document.getElementById(x)?.value)||0};var s=state.shifts;var minE=s&&s.length>0?s[0].minStaff||1:1;var minM=s&&s.length>1?s[1].minStaff||1:1;var minN=s&&s.length>2?s[2].minStaff||0:0;return{maxRestDays:f("ruleMaxRestDays")||6,minMonthlyWork:f("ruleMinMonthlyWork")||20,minConsecRest:1,maxConsec:5,minE:minE,minM:minM,minN:minN}}
+function getAutoRules(){var f=function(x){return parseInt(document.getElementById(x)?.value)||0};var s=state.shifts;var minE=s&&s.length>0?s[0].minStaff||1:1;var minM=s&&s.length>1?s[1].minStaff||1:1;var minN=s&&s.length>2?s[2].minStaff||0:0;return{maxRestDays:f("ruleMaxRestDays")||6,minMonthlyWork:f("ruleMinMonthlyWork")||20,minConsecRest:1,maxConsec:6,minE:minE,minM:minM,minN:minN}}
 function getPredictedDemands(year,month,numDays){
   var demands=[];for(var d=1;d<=numDays;d++)demands.push({staff:0,reception:0});
   var totalEmps=state.employees.length;
@@ -1038,7 +1038,22 @@ function doGenerate(plan,rules,modeLabel){
     resetGenBtn();return;
   }
   // Note: minStaff targets that exceed team size are handled as warnings (yellow), not blocks
-// Assign target work days to each employee (balanced)
+// Enforce maxConsec during generation: break runs > maxConsec by inserting R
+  for(var ei2=0;ei2<emps.length;ei2++){
+    var emp2=emps[ei2];
+    var consecCount=0;
+    for(var d=1;d<=numDays;d++){
+      var dk=dateKey(plan.year,plan.month,d);
+      var code=sched[dk]&&sched[dk][emp2.id]?sched[dk][emp2.id]:null;
+      if(!code||code==='R'){consecCount=0;continue;}
+      consecCount++;
+      if(consecCount>rules.maxConsec){
+        sched[dk][emp2.id]='R';
+        consecCount=0;
+      }
+    }
+  }
+  // Assign target work days to each employee (balanced)
   var empTarget={};
   var remainingWork=totalWorkNeeded;
   // First pass: assign avg to all
@@ -1216,7 +1231,7 @@ function doGenerate(plan,rules,modeLabel){
   if(filledDays===0){
     var reason='约束过强';
       if(violations.length>0&&violations[0].msg)reason=violations[0].msg;
-      toast('排班生成失败：'+reason+'。建议调大连续上班上限或减少最低休息','error');
+      toast('排班生成失败：'+reason+'。建议调大最大连续上班天数或减少最低休息','error');
     resetGenBtn();return;
   }
 
@@ -1597,7 +1612,7 @@ function loadRules(){
   var f=function(id,val,def){var el=document.getElementById(id);if(el)el.value=val||def};
   f("ruleMaxRestDays",_savedRules.maxRestDays,6);
   f("ruleMinMonthlyWork",_savedRules.minMonthlyWork,20);
-  f("ruleMaxConsec",_savedRules.maxConsec,5);
+  f("ruleMaxConsec",_savedRules.maxConsec,6);
   f("ruleMinE",_savedRules.minE,1);
   f("ruleMinM",_savedRules.minM,1);
   f("ruleMinN",_savedRules.minN,0);
