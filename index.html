@@ -306,6 +306,7 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
     <div class="card"><div id="scheduleShiftLegend"></div></div>
     <div class="toolbar"><div class="toolbar-left">
       <button class="btn btn-primary" onclick="exportScheduleCSV()">&#x1F4E5; 导出CSV</button>
+      <button class="btn btn-secondary" id="undoBtn" onclick="undoSchedule()" disabled title="撤销最近一次修改">↩ 撤销</button>
       <button class="btn" onclick="exportScheduleExcel()">&#x1F4C4; 导出日历</button>
     </div></div>
     <div class="card"><div id="scheduleGrid"></div></div>
@@ -645,6 +646,7 @@ function hasAnyAssignment(planId,year,month){
 }
 
 function cycleShift(planId,year,month,empId,dateStr){
+  saveScheduleSnapshot(planId,year,month);
   const plan=state.plans.find(p=>p.id===planId);
   if(!plan||plan.locked){toast('方案已锁定','warn');return;}
   const emp=state.employees.find(e=>e.id===empId);if(!emp)return;
@@ -1537,6 +1539,21 @@ async function sendChatMessage(){
     const data=await resp.json();
     const reply=data.choices?.[0]?.message?.content||'AI\u672A\u8FD4\u56DE\u6709\u6548\u56DE\u590D';
     addChatMessage('assistant',reply);
+    if(window._chatMode==='check'){
+      // Offer to fix violations
+      var fixBtn=document.createElement('button');
+      fixBtn.className='btn btn-primary btn-sm';
+      fixBtn.textContent='🔧 一键修复违规';
+      fixBtn.style.marginTop='6px';
+      fixBtn.onclick=function(){
+        // Re-run with fix instruction
+        window._chatMode='generate';
+        document.getElementById('chatInput').value='请修复上述所有违规项，重新生成符合所有硬性规则的排班';
+        sendChatMessage();
+        window._chatMode='check';
+      };
+      document.getElementById('chatMessages').appendChild(fixBtn);
+    }
     if(isGen){
       const m=reply.match(/\\{[\\s\\S]*"schedule"[\\s\\S]*\\}/);
       if(m){
