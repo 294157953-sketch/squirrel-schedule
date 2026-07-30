@@ -1744,7 +1744,7 @@ function importDailyFlow(event){const f=event.target.files[0];if(!f)return;if(!v
         }
       }
     }
-    const errors=[],rows=raw.map((row,i)=>{const date=smartParseDate(findCol(row,["日期","date"]));if(!date)errors.push({row:i+3,msg:"日期格式无法识别",hint:"请使用YYYY-MM-DD格式"});return{date,gmv:smartParseNum(findCol(row,["GMV","gmv"])),reception:smartParseNum(findCol(row,["接待量","reception","流量"]))}}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"每日流量");event.target.value="";return}showImportPreview(rows,"每日流量",function(){const map=new Map(state.flowDaily.map(r=>[r.date,r]));rows.forEach(r=>map.set(r.date,r));state.flowDaily=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();saveImportHistory({type:"每日流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+const errors=[],rows=raw.map((row,i)=>{const date=smartParseDate(findCol(row,["日期","date"]));if(!date)errors.push({row:i+3,msg:"日期格式无法识别",hint:"请使用YYYY-MM-DD格式"});return{date,gmv:smartParseNum(findCol(row,["GMV","gmv"])),reception:smartParseNum(findCol(row,["接待量","reception","流量"]))}}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"每日流量");event.target.value="";return}showImportPreview(rows,"每日流量",function(){const map=new Map(state.flowDaily.map(r=>[r.date,r]));rows.forEach(r=>map.set(r.date,r));state.flowDaily=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();saveImportHistory({type:"每日流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
 function downloadDailyTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([["日期","GMV(万)","接待量"],["2026-07-01","50.5","120"]]);ws["!cols"]=[{wch:14},{wch:12},{wch:10}];XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD，如2026-07-01","示例":"2026-07-01"},{"字段":"GMV(万)","必填":"否","说明":"当日GMV金额，单位万元","示例":"50.5"},{"字段":"接待量","必填":"否","说明":"当日客服接待总量","示例":"120"}]);ns["!cols"]=[{wch:18},{wch:8},{wch:34},{wch:18}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"每日流量导入模板.xlsx");toast("模板已下载")}
 function importHourlyFlow(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}
     // Wide format support: row[姓名] + date columns are shifts (supports Excel serial dates)
@@ -1779,7 +1779,7 @@ function importHourlyFlow(event){const f=event.target.files[0];if(!f)return;if(!
         }
       }
     }
-    const errors=[],rows=raw.map((row,i)=>{const obj={date:smartParseDate(findCol(row,["日期","date"]))};if(!obj.date)errors.push({row:i+3,msg:"日期格式无法识别"});for(let h=0;h<24;h++)obj["h"+h]=smartParseNum(row["h"+h]||row[h]||row[String(h)]);return obj}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"分时流量");event.target.value="";return}showImportPreview(rows.slice(0,10),"分时流量",function(){const map=new Map(state.flowHourly.map(r=>[r.date,r]));rows.forEach(r=>map.set(r.date,r));state.flowHourly=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();buildHourlyChart();saveImportHistory({type:"分时流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+const errors=[],rows=raw.map((row,i)=>{const obj={date:smartParseDate(findCol(row,["日期","date"]))};if(!obj.date)errors.push({row:i+3,msg:"日期格式无法识别"});for(let h=0;h<24;h++)obj["h"+h]=smartParseNum(row["h"+h]||row[h]||row[String(h)]);return obj}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"分时流量");event.target.value="";return}showImportPreview(rows.slice(0,10),"分时流量",function(){const map=new Map(state.flowHourly.map(r=>[r.date,r]));rows.forEach(r=>map.set(r.date,r));state.flowHourly=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();buildHourlyChart();saveImportHistory({type:"分时流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
 function downloadHourlyTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const heads=["日期"];for(let h=0;h<24;h++)heads.push("h"+h);const sample=["2026-07-01"];for(let h=0;h<24;h++)sample.push(String(h*5+10));const ws=XLSX.utils.aoa_to_sheet([heads,sample]);ws["!cols"]=heads.map(()=>({wch:8}));XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD","示例":"2026-07-01"},{"字段":"h0~h23","必填":"否","说明":"0-23点每小时接待量，数值","示例":"10"}]);ns["!cols"]=[{wch:18},{wch:10},{wch:34},{wch:18}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"分时流量导入模板.xlsx");toast("模板已下载")}
 function importPredictedFlow(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}
     // Wide format support: row[姓名] + date columns are shifts (supports Excel serial dates)
@@ -1814,42 +1814,80 @@ function importPredictedFlow(event){const f=event.target.files[0];if(!f)return;i
         }
       }
     }
-    const errors=[],rows=raw.map((row,i)=>{const date=smartParseDate(findCol(row,["日期","date"]));if(!date)errors.push({row:i+3,msg:"日期格式无法识别"});const reception=smartParseNum(findCol(row,["接待量","reception","预测接待"]));const obj={date,reception,predicted:reception};for(let h=0;h<24;h++)obj["h"+h]=smartParseNum(row["h"+h]||row[h]);return obj}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"预测流量");event.target.value="";return}showImportPreview(rows,"预测流量",function(){const map=new Map(state.predictedFlow.map(r=>[r.date,r]));rows.forEach(r=>{r.predicted=r.reception;map.set(r.date,r)});state.predictedFlow=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();if(typeof renderAutoPage==="function")renderAutoPage();saveImportHistory({type:"已预测流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+const errors=[],rows=raw.map((row,i)=>{const date=smartParseDate(findCol(row,["日期","date"]));if(!date)errors.push({row:i+3,msg:"日期格式无法识别"});const reception=smartParseNum(findCol(row,["接待量","reception","预测接待"]));const obj={date,reception,predicted:reception};for(let h=0;h<24;h++)obj["h"+h]=smartParseNum(row["h"+h]||row[h]);return obj}).filter(r=>r.date);if(errors.length){showImportErrors(errors,"预测流量");event.target.value="";return}showImportPreview(rows,"预测流量",function(){const map=new Map(state.predictedFlow.map(r=>[r.date,r]));rows.forEach(r=>{r.predicted=r.reception;map.set(r.date,r)});state.predictedFlow=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));saveState();renderDataPage();if(typeof renderAutoPage==="function")renderAutoPage();saveImportHistory({type:"已预测流量",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
 function downloadPredictedTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([["日期","接待量"],["2026-07-01","120"]]);ws["!cols"]=[{wch:14},{wch:10}];XLSX.utils.book_append_sheet(wb,ws,"填写区");const ns=XLSX.utils.json_to_sheet([{"字段":"日期","必填":"是","说明":"格式YYYY-MM-DD","示例":"2026-07-01"},{"字段":"接待量","必填":"是","说明":"预测当日接待量","示例":"120"}]);ns["!cols"]=[{wch:14},{wch:8},{wch:30},{wch:16}];XLSX.utils.book_append_sheet(wb,ns,"填写说明");XLSX.writeFile(wb,"预测流量导入模板.xlsx");toast("模板已下载")}
-function importHistoricalShifts(event){const f=event.target.files[0];if(!f)return;if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}if(!ensureXLSX()){event.target.value="";return}const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:"array"});const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!raw.length){toast("文件为空","warn");event.target.value="";return}const v=validateHeaders(raw,["姓名","日期"],"历史班次");if(!v.ok){toast(v.msg,"error");event.target.value="";return}
-    // Wide format support: row[姓名] + date columns are shifts (supports Excel serial dates)
-    var isWide=!Object.keys(raw[0]||{}).find(function(k){return String(k).indexOf("日期")>=0||String(k).indexOf("date")>=0});
-    var rows2=[];
-    if(isWide){
-      var headers=Object.keys(raw[0]);var nameCol=headers[0];var dateCols=headers.slice(1);
-      for(var wi=0;wi<raw.length;wi++){
-        var rr=raw[wi];var nm=String(rr[nameCol]||"").trim();
-        if(!nm)continue;
-        var yr=2026,mn=7;var plan2=getCurrentPlan();if(plan2){yr=plan2.year;mn=plan2.month;}
-        for(var cdx=0;cdx<dateCols.length;cdx++){
-          var cell=rr[dateCols[cdx]];
-          if(cell===undefined||cell===null||cell==="")continue;
-          var code=shiftNameToCode(cell);
-          if(!code)continue;
-          
-          var colName2=String(dateCols[cdx]);
-          var m2=colName2.match(/(\d{1,2})[\-\/](\d{1,2})/);
-          if(!m2){
-            var sn=parseInt(colName2);
-            if(!isNaN(sn)&&sn>40000&&sn<50000){
-              var dt=new Date((sn-25569)*86400*1000);
-              m2=[null,String(dt.getMonth()+1).padStart(2,"0"),String(dt.getDate()).padStart(2,"0")];
+function importHistoricalShifts(event){
+  const f=event.target.files[0];if(!f)return;
+  if(!validateFileExt(f,["xlsx","xls"])){event.target.value="";return}
+  if(!ensureXLSX()){event.target.value="";return}
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      var raw=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
+      if(!raw.length){toast("文件为空","warn");event.target.value="";return}
+      var rows=[];var errors=[];
+      var keys0=Object.keys(raw[0]||{});
+      var hasDateCol=keys0.some(function(k){return String(k).indexOf("日期")>=0||String(k).indexOf("date")>=0;});
+      if(!hasDateCol){
+        // WIDE FORMAT detection
+        var nameCol=keys0[0];
+        var dateCols=keys0.slice(1);
+        var plan=getCurrentPlan();var yr=plan?plan.year:2026;
+        for(var wi=0;wi<raw.length;wi++){
+          var rr=raw[wi];var nm=String(rr[nameCol]||"").trim();
+          if(!nm)continue;
+          for(var cdx=0;cdx<dateCols.length;cdx++){
+            var cell=rr[dateCols[cdx]];
+            if(cell===undefined||cell===null||cell==="")continue;
+            var code=shiftNameToCode(cell);
+            if(!code){errors.push({row:wi+3,msg:"班次无效："+cell});continue}
+            var ds=String(dateCols[cdx]).trim();
+            var mm=null,dd=null;
+            var m=ds.match(/(\d{1,2})[\-\/](\d{1,2})/);
+            if(m){mm=parseInt(m[1]);dd=parseInt(m[2]);}
+            if(mm===null){
+              var sn=parseInt(ds);
+              if(!isNaN(sn)&&sn>40000&&sn<50000){
+                var dt=new Date((sn-25569)*86400*1000);
+                mm=dt.getMonth()+1;dd=dt.getDate();
+              }
             }
+            if(mm===null||dd===null||mm<1||mm>12||dd<1||dd>31)continue;
+            rows.push({name:nm,date:yr+"-"+(mm<10?"0":"")+mm+"-"+(dd<10?"0":"")+dd,shift:code});
           }
-
-          if(!m2)continue;
-          var mm=parseInt(m2[1]),dd=parseInt(m2[2]);
-          var yrM=yr;if(mm<1||mm>12||dd<1||dd>31)continue;
-          rows2.push({name:nm,date:yrM+"-"+(mm<10?"0":"")+mm+"-"+(dd<10?"0":"")+dd,shift:code});
         }
+        if(!rows.length){
+          toast("宽表无有效数据，请确认日期列和班次值","error");event.target.value="";return;
+        }
+        showImportPreview(rows,"历史班次",function(){
+          state.historicalShifts=rows;saveState();renderDataPage();
+          saveImportHistory({type:"历史班次",time:new Date().toLocaleString(),count:rows.length});
+          toast("导入完成："+rows.length+"条");
+        });
+        return;
       }
-    }
-    const errors=[],rows=raw.map((row,i)=>{const name=String(findCol(row,["姓名","name","员工"]));const date=smartParseDate(findCol(row,["日期","date"]));const shift=String(findCol(row,["班次","shift"])).toUpperCase();if(!name)errors.push({row:i+3,msg:"缺少姓名"});if(!date)errors.push({row:i+3,msg:"日期格式错误"});if(!shift||!state.shifts.some(s=>s.code===shift))errors.push({row:i+3,msg:"班次“"+shift+"”无效",hint:"有效值: "+state.shifts.map(s=>s.code).join(",")});return{name,date,shift}}).filter(r=>r.name&&r.date&&r.shift);if(errors.length){showImportErrors(errors,"历史班次");event.target.value="";return}showImportPreview(rows,"历史班次",function(){state.historicalShifts=rows;saveState();renderDataPage();saveImportHistory({type:"历史班次",time:new Date().toLocaleString(),count:rows.length});toast("导入完成："+rows.length+"条")})}catch(err){toast("文件解析失败","error")}};r.readAsArrayBuffer(f);event.target.value=""}
+      // LONG FORMAT
+      raw.forEach(function(row,i){
+        var name=String(findCol(row,["姓名","name","员工"]));
+        var date=smartParseDate(findCol(row,["日期","date"]));
+        var shift=String(findCol(row,["班次","shift"])).toUpperCase();
+        if(name&&date&&shift&&state.shifts.some(function(s){return s.code===shift;}))rows.push({name:name,date:date,shift:shift});
+        else errors.push({row:i+3,msg:"校验失败",hint:"姓名/日期/班次"+name+"/"+date+"/"+shift});
+      });
+      if(!rows.length&&errors.length){showImportErrors(errors,"历史班次");event.target.value="";return}
+      if(!rows.length){toast("解析后无有效数据","warn");event.target.value="";return}
+      showImportPreview(rows,"历史班次",function(){
+        state.historicalShifts=rows;saveState();renderDataPage();
+        saveImportHistory({type:"历史班次",time:new Date().toLocaleString(),count:rows.length});
+        toast("导入完成："+rows.length+"条");
+      });
+    }catch(err){toast("文件解析失败","error")}
+  };
+  r.readAsArrayBuffer(f);event.target.value="";
+}
+
 function downloadShiftsTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.book_new();
 const ds=[["姓名", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], ["日期", "07/01", "07/02", "07/03", "07/04", "07/05", "07/06", "07/07", "07/08", "07/09", "07/10", "07/11", "07/12", "07/13", "07/14", "07/15", "07/16", "07/17", "07/18", "07/19", "07/20", "07/21", "07/22", "07/23", "07/24", "07/25", "07/26", "07/27", "07/28", "07/29", "07/30", "07/31"], ["客服A", "休息", "早班", "中班", "晚班", "休息", "晚班", "晚班", "晚班", "晚班", "晚班", "早班", "中班", "早班", "中班", "晚班", "晚班", "晚班", "休息", "中班", "早班", "中班", "休息", "早班", "早班", "休息", "晚班", "晚班", "早班", "中班", "中班", "休息"], ["客服B", "晚班", "中班", "中班", "中班", "晚班", "早班", "中班", "休息", "晚班", "中班", "早班", "中班", "晚班", "中班", "休息", "中班", "晚班", "中班", "中班", "中班", "晚班", "中班", "中班", "中班", "晚班", "早班", "中班", "中班", "晚班", "中班", "中班"], ["客服C", "休息", "晚班", "晚班", "休息", "早班", "中班", "休息", "晚班", "早班", "休息", "中班", "晚班", "休息", "晚班", "晚班", "休息", "早班", "晚班", "休息", "晚班", "早班", "休息", "晚班", "晚班", "休息", "中班", "晚班", "休息", "早班", "晚班", "休息"], ["李四", "早班", "休息", "早班", "中班", "早班", "晚班", "早班", "休息", "早班", "中班", "早班", "休息", "早班", "休息", "早班", "中班", "早班", "休息", "早班", "休息", "早班", "中班", "早班", "休息", "早班", "晚班", "早班", "中班", "早班", "休息", "早班"]];
 const ws=XLSX.utils.aoa_to_sheet(ds);
