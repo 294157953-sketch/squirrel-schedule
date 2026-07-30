@@ -346,7 +346,7 @@ input,select,textarea,button{font-family:inherit;font-size:var(--fs-body);}
       <div class="rule-row">
         <label data-tip="当月最多休息天数">每月最多休息<input id="ruleMaxRestDays" type="number" value="6" min="0" max="15" onchange="validateInput(this,0,15);validateRulesLive()"></label>
         <label data-tip="当月最少上班天数">每月最少上班<input id="ruleMinMonthlyWork" type="number" value="20" min="10" max="31" onchange="validateInput(this,10,31);validateRulesLive()"></label>
-        <label data-tip="至少连续休息N天">至少连续休息<input id="ruleMinConsecRest" type="number" value="1" min="1" max="5" onchange="validateInput(this,1,5);validateRulesLive()"></label>
+        
         <label data-tip="任意班次连续上班上限">连续上班上限<input id="ruleMaxConsec" type="number" value="5" min="1" max="10" onchange="validateInput(this,1,10);validateRulesLive()"></label>
       </div>
       
@@ -563,18 +563,59 @@ function switchTab(tabId){
 // ---- VALIDATION ----
 function validateRulesLive(){
   var n=document.getElementById("ruleValidationNote");if(!n)return;
+  var genBtn=document.getElementById("genBtn");
   var maxRest=parseInt(document.getElementById("ruleMaxRestDays")?.value)||6;
   var minWork=parseInt(document.getElementById("ruleMinMonthlyWork")?.value)||20;
-  var consecRest=parseInt(document.getElementById("ruleMinConsecRest")?.value)||1;
-  var maxConsec=parseInt(document.getElementById("ruleMaxConsec")?.value)||5;
-  var msgs=[];
-  if(maxRest+minWork>31)msgs.push("最多休息+最少上班超过31天");
-  if(consecRest>maxRest)msgs.push("连续休息天数不能大于最多休息天数");
-  if(maxConsec<1)msgs.push("连续上班上限至少为1天");
-  if(msgs.length){n.innerHTML='<span style="color:var(--danger);">'+msgs.join("<br>")+'</span>';document.getElementById("genBtn").disabled=true}
-  else{n.innerHTML='<span style="color:var(--success);">\u2705 规则校验通过</span>';document.getElementById("genBtn").disabled=false}
+  var plan=getCurrentPlan();var nd=plan?daysInMonth(plan.year,plan.month):31;
+  var totalEmps=state.employees.length;
+  var rules=getAutoRules();
+  var minE=rules.minE||0,minM=rules.minM||0,minN=rules.minN||0;
+  var dailyMin=minE+minM+minN;
+  var maxWorkPerEmp=nd-maxRest;
+  var maxTotalSlots=totalEmps*maxWorkPerEmp;
+  var minTotalNeeded=minWork*totalEmps;
+
+  // === TIER 1: Hard block - minMonthlyWork impossible ===
+  if(minTotalNeeded>maxTotalSlots){
+    n.innerHTML='<div style="background:#FFEBEE;border:1px solid #EF9A9A;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:12px;">'
+      +'<b style="color:#C62828;">❌ 排班参数冲突，无法生成排班</b><br>'
+      +'<span style="color:#333;">冲突原因：</span><br>'
+      +'<span style="color:#555;">'
+      +'1）按每月最少上班 <b>'+minWork+'天</b>，'+totalEmps+'人合计需 <b>'+minTotalNeeded+'人次</b>；<br>'
+      +'2）每人最多上班 '+maxWorkPerEmp+'天，总承载 <b>'+maxTotalSlots+'人次</b>，无法满足。<br>'
+      +'</span>'
+      +'<span style="color:#1565C0;font-size:11px;">👉 方案A：降低每月最少上班至 ≤'+Math.floor(maxTotalSlots/totalEmps)+'天<br>👉 方案B：增加团队人数至 ≥'+Math.ceil(minTotalNeeded/maxWorkPerEmp)+'人</span>'
+      +'</div>';
+    if(genBtn){genBtn.disabled=true;genBtn.classList.add('disabled')}
+    return;
+  }
+
+  // === TIER 2: Warning - shift minStaff hard to meet ===
+  if(dailyMin>totalEmps){
+    n.innerHTML='<div style="background:#FFF8E1;border:1px solid #FFB74D;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:12px;">'
+      +'<b style="color:#E65100;">⚠️ 配置参数提示：部分目标难以完全达成</b><br>'
+      +'<span style="color:#555;">'
+      +'冲突原因：<br>'
+      +'1）每日班次最低需 <b>'+dailyMin+'人</b>（早'+minE+'+中'+minM+'+晚'+minN+'）；<br>'
+      +'2）团队仅 <b>'+totalEmps+'人</b>，难以稳定满足。<br>'
+      +'</span>'
+      +'<span style="color:#1565C0;font-size:11px;">系统将优先保障硬性规则（最多休息/最少上班），均衡分配人员，部分日期班次人数可能不达标。</span>'
+      +'</div>';
+    if(genBtn){genBtn.disabled=false;genBtn.classList.remove('disabled')}
+    return;
+  }
+
+  // === TIER 3: OK ===
+  if(maxRest+minWork>31){
+    n.innerHTML='<div style="background:#FFF8E1;border:1px solid #FFB74D;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:12px;">'
+      +'<b style="color:#E65100;">⚠️ 最多休息('+maxRest+')+最少上班('+minWork+')='+(maxRest+minWork)+'天>31天</b>'
+      +'</div>';
+    if(genBtn){genBtn.disabled=false;genBtn.classList.remove('disabled')}
+    return;
+  }
+  n.innerHTML='<span style="color:var(--success);">✅ 规则校验通过</span>';
+  if(genBtn){genBtn.disabled=false;genBtn.classList.remove('disabled')}
 }
-// ---- SCHEDULE PAGE ----
 function getShift(code){return state.shifts.find(s=>s.code===code)||state.shifts.find(s=>s.code==='R');}
 
 // Render shift legend
@@ -988,26 +1029,16 @@ function doGenerate(plan,rules,modeLabel){
   // Ensure avgWork + minRestDays <= numDays
   avgWork=Math.min(avgWork,numDays-rules.maxRestDays);
 
-  // Pre-check: can we satisfy minimum work requirement?
-  var requiredSlots=minWork*totalEmps;
-  if(requiredSlots>totalWorkNeeded){
-    toast('规则不可行：每人最少'+minWork+'天共需'+requiredSlots+'人班，但每日总需求仅'+totalWorkNeeded+'。降低最少上班或增加每日班次人数','error');
+  // Pre-check: only block if HARD rules impossible
+  var maxWorkPerEmp=numDays-rules.maxRestDays;
+  var maxTotalSlots=totalEmps*maxWorkPerEmp;
+  var minTotalNeeded=minWork*totalEmps;
+  if(minTotalNeeded>maxTotalSlots){
+    toast('硬性规则无解：'+totalEmps+'人×'+maxWorkPerEmp+'天='+maxTotalSlots+'人次 < '+minTotalNeeded+'人次需求。降低最少上班或增加员工','error');
     resetGenBtn();return;
   }
-  // Check feasibility
-  if(totalWorkNeeded>totalEmps*(numDays-rules.maxRestDays)){
-    var maxPossible=totalEmps*(numDays-rules.maxRestDays);
-    var minE=rules.minE||0,minM=rules.minM||0,minN=rules.minN||0;
-    var dailyMin=minE+minM+minN;
-    toast('无法生成：每天需要'+dailyMin+'人（早'+minE+'+中'+minM+'+晚'+minN+'）但团队仅'+totalEmps+'人。建议减少最低人数或增加员工','error');
-    resetGenBtn();return;
-  }
-  if(minWork>numDays-rules.maxRestDays){
-    toast('规则冲突：最少上班'+minWork+'天时最多只能休息'+(numDays-minWork)+'天，但设了'+rules.maxRestDays+'天。请减少上班天数或增加休息上限','error');
-    resetGenBtn();return;
-  }
-
-  // Assign target work days to each employee (balanced)
+  // Note: minStaff targets that exceed team size are handled as warnings (yellow), not blocks
+// Assign target work days to each employee (balanced)
   var empTarget={};
   var remainingWork=totalWorkNeeded;
   // First pass: assign avg to all
@@ -1566,7 +1597,6 @@ function loadRules(){
   var f=function(id,val,def){var el=document.getElementById(id);if(el)el.value=val||def};
   f("ruleMaxRestDays",_savedRules.maxRestDays,6);
   f("ruleMinMonthlyWork",_savedRules.minMonthlyWork,20);
-  f("ruleMinConsecRest",_savedRules.minConsecRest,1);
   f("ruleMaxConsec",_savedRules.maxConsec,5);
   f("ruleMinE",_savedRules.minE,1);
   f("ruleMinM",_savedRules.minM,1);
