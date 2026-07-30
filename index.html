@@ -1494,21 +1494,68 @@ function buildChatContext(){
   return '\u{1F4CB} 系统状态\n'+parts.map((p,i)=>`${i+1}. ${p}`).join('\n');
 }
 function quickCmd(type){
-  const inp=document.getElementById('chatInput');const cmds={generate:'帮我生成排班，尽量减少员工连续晚班',check:'检查当前排班有哪些违规项',balance:'帮我均衡员工工作量，避免某些员工连续加班'};inp.value=cmds[type]||'';inp.focus();
+  const inp=document.getElementById('chatInput');const cmds={generate:'帮我生成排班，尽量减少员工连续晚班',check:'检查当前排班有哪些违规项',balance:'帮我均衡员工工作量，避免某些员工连续加班'};inp.value=cmds[type]||'';window._chatMode=type;inp.focus();
 }
-async function sendChatMessage(){document.getElementById('chatWelcome').style.display='none';
-  const inp=document.getElementById('chatInput');const text=inp.value.trim();if(!text)return;addChatMessage('user',text);inp.value='';
+async function sendChatMessage(){
+  document.getElementById('chatWelcome').style.display='none';
+  const inp=document.getElementById('chatInput');
+  const text=inp.value.trim();
+  if(!text)return;
+  addChatMessage('user',text);
+  inp.value='';
   const cfg=state.llmConfigs.find(c=>c.isDefault)||state.llmConfigs[0];
-  if(!cfg||!cfg.apiKey){addChatMessage('system','\u26A0 请在LLM配置页添加API Key并设为默认');return;}
-  const ctx=buildChatContext();const sys=`你是三只松鼠客服排班AI。${ctx}\n生成排班JSON: {schedule:{"YYYY-MM-DD":{"姓名":"E"}}}`;
-  addChatMessage('system','\u23F3 正在请求AI...');
+  if(!cfg||!cfg.apiKey){addChatMessage('system','\u26A0 \u8BF7\u5728LLM\u914D\u7F6E\u9875\u6DFB\u52A0API Key\u5E76\u8BBE\u4E3A\u9ED8\u8BA4');return;}
+  const ctx=buildChatContext();
+  const isGen=window._chatMode==='generate';
+  const sys=`\u4F60\u662F\u4E09\u53EA\u677E\u9F20\u5BA2\u670D\u6392\u73EDAI\u3002${ctx}`+(isGen?'\n\u751F\u6210\u6392\u73EDJSON: {schedule:{"YYYY-MM-DD":{"\u59D3\u540D":"E"}}}':'');
+  addChatMessage('system','\u23F3 \u6B63\u5728\u8BF7\u6C42AI...');
   try{
-    const resp=await fetch(cfg.baseURL+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},body:JSON.stringify({model:cfg.modelName,messages:[{role:'system',content:sys},{role:'user',content:text}],temperature:cfg.temperature||0.3,max_tokens:cfg.maxTokens||4096})});
-    const data=await resp.json();const reply=data.choices?.[0]?.message?.content||'AI未返回有效回复';addChatMessage('assistant',reply);
-    const m=reply.match(/\{[\s\S]*"schedule"[\s\S]*\}/);if(m){try{const p=JSON.parse(m[0]);if(p.schedule){const btn=document.createElement('button');btn.className='btn btn-primary btn-sm';btn.textContent='\u2705 一键应用到排班';btn.style.marginTop='8px';btn.onclick=()=>{showConfirm('应用AI排班？',()=>{const plan=getCurrentPlan();if(!plan||plan.locked){toast('方案锁定','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);for(const[dk,assign]of Object.entries(p.schedule)){sched[dk]=sched[dk]||{};for(const[nm,code]of Object.entries(assign)){const e=state.employees.find(x=>x.name===nm);if(e)sched[dk][e.id]=code;}}saveState();switchTab('tab-schedule');toast('AI排班已应用');});};document.getElementById('chatMessages').appendChild(btn);}}catch(e){}}
-  }catch(err){addChatMessage('system','\u274C 请求失败: '+err.message);}
+    const resp=await fetch(cfg.baseURL+'/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},
+      body:JSON.stringify({model:cfg.modelName,messages:[{role:'system',content:sys},{role:'user',content:text}],temperature:cfg.temperature||0.3,max_tokens:cfg.maxTokens||4096})
+    });
+    const data=await resp.json();
+    const reply=data.choices?.[0]?.message?.content||'AI\u672A\u8FD4\u56DE\u6709\u6548\u56DE\u590D';
+    addChatMessage('assistant',reply);
+    if(isGen){
+      const m=reply.match(/\\{[\\s\\S]*"schedule"[\\s\\S]*\\}/);
+      if(m){
+        try{
+          const p=JSON.parse(m[0]);
+          if(p.schedule){
+            const btn=document.createElement('button');
+            btn.className='btn btn-primary btn-sm';
+            btn.textContent='\u2705 \u4E00\u952E\u5E94\u7528\u5230\u6392\u73ED';
+            btn.style.marginTop='8px';
+            btn.onclick=()=>{
+              showConfirm('\u5E94\u7528AI\u6392\u73ED\uFF1F',()=>{
+                const plan=getCurrentPlan();
+                if(!plan||plan.locked){toast('\u65B9\u6848\u9501\u5B9A','warn');return;}
+                const sched=getSchedule(plan.id,plan.year,plan.month);
+                for(const[dk,assign]of Object.entries(p.schedule)){
+                  sched[dk]=sched[dk]||{};
+                  for(const[nm,code]of Object.entries(assign)){
+                    const e=state.employees.find(x=>x.name===nm);
+                    if(e)sched[dk][e.id]=code;
+                  }
+                }
+                saveState();
+                switchTab('tab-schedule');
+                toast('AI\u6392\u73ED\u5DF2\u5E94\u7528');
+              });
+            };
+            document.getElementById('chatMessages').appendChild(btn);
+          }
+        }catch(e){}
+      }
+    }
+  }catch(err){
+    addChatMessage('system','\u274C \u8BF7\u6C42\u5931\u8D25: '+err.message);
+  }
   saveState();
 }
+
 function addChatMessage(role,text){const msgs=document.getElementById('chatMessages');document.getElementById('chatWelcome').style.display='none';const div=document.createElement('div');div.className='chat-msg '+role;div.textContent=text;if(role!=='system'){const cb=document.createElement('button');cb.className='copy-btn';cb.textContent='复制';cb.onclick=()=>{navigator.clipboard.writeText(text);toast('已复制');};div.appendChild(cb);}msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
 function clearChat(){document.getElementById('chatMessages').innerHTML='';document.getElementById('chatWelcome').style.display='';renderChatPage();}
 function handleChatFile(event){const f=event.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(e.target.result,{type:'array'});const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});const preview=data.slice(0,8).map(r=>r.join(', ')).join('\n');addChatMessage('user',`[文件: ${f.name}]\n${preview}\n...共${data.length}行`);}catch(e){toast('文件解析失败','error');}};r.readAsArrayBuffer(f);event.target.value='';}
@@ -1597,7 +1644,7 @@ function downloadShiftsTemplate(){if(!ensureXLSX())return;const wb=XLSX.utils.bo
 function exportAllData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='排班备份_'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('备份已下载');}
 function importAllData(event){const f=event.target.files[0];if(!f)return;showConfirm('导入将覆盖全部数据！',()=>{const r=new FileReader();r.onload=function(e){try{state=JSON.parse(e.target.result);saveState();initApp();toast('数据恢复成功');}catch(err){toast('文件格式错误','error');}};r.readAsText(f);});event.target.value='';}
 function exportScheduleCSV(){const plan=getCurrentPlan();if(!plan){toast('无方案','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);const numDays=daysInMonth(plan.year,plan.month);let csv='\uFEFF员工,';for(let d=1;d<=numDays;d++)csv+=mmdd(plan.year,plan.month,d)+',';csv+='\n';for(const emp of state.employees){csv+=emp.name+',';for(let d=1;d<=numDays;d++)csv+=(sched[dateKey(plan.year,plan.month,d)]?.[emp.id]||'R')+',';csv+='\n';}const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`排班_${plan.year}${plan.month}.csv`;a.click();toast('CSV已导出');}
-function exportScheduleExcel(){const plan=getCurrentPlan();if(!plan){toast('无方案','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);const numDays=daysInMonth(plan.year,plan.month);const data=[['员工',...Array.from({length:numDays},(_,i)=>mmdd(plan.year,plan.month,i+1))]];for(const emp of state.employees){const row=[emp.name];for(let d=1;d<=numDays;d++)row.push(sched[dateKey(plan.year,plan.month,d)]?.[emp.id]||'R');data.push(row);}const ws=XLSX.utils.aoa_to_sheet(data);XLSX.writeFile((function(){var wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,'排班');return wb2})(),`排班_${plan.year}${plan.month}.xlsx`);toast('日历已导出');}
+function exportScheduleExcel(){const plan=getCurrentPlan();if(!plan){toast('无方案','warn');return;}const sched=getSchedule(plan.id,plan.year,plan.month);const numDays=daysInMonth(plan.year,plan.month);const data=[['员工',...Array.from({length:numDays},(_,i)=>mmdd(plan.year,plan.month,i+1))]];for(const emp of state.employees){const row=[emp.name];for(let d=1;d<=numDays;d++)row.push(getShift(sched[dateKey(plan.year,plan.month,d)]?.[emp.id]||'R').name);data.push(row);}const ws=XLSX.utils.aoa_to_sheet(data);XLSX.writeFile((function(){var wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,'排班');return wb2})(),`排班_${plan.year}${plan.month}.xlsx`);toast('日历已导出');}
 
 // ---- INIT ----
 
