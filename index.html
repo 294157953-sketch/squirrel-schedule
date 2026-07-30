@@ -718,6 +718,14 @@ function jumpToViolation(idx){
 }
 
 // ---- VALIDATION ENGINE ----
+function parseTime(t){
+  if(!t||typeof t!=='string')return 0;
+  var p=t.split(':');if(p.length!==2)return 0;
+  var h=parseInt(p[0]),m=parseInt(p[1]);
+  // Handle overnight times: 01:00 = 25:00 equivalent for comparison
+  if(h>=0&&h<6)h+=24;
+  return h*60+m;
+}
 function validateSchedule(planId,year,month){var v=[],plan=state.plans.find(function(p){return p.id===planId});if(!plan)return v;var sched=getSchedule(planId,year,month),numDays=daysInMonth(year,month),emps=state.employees;
   var rules=getAutoRules();
   var maxConsec={};state.shifts.forEach(function(s){maxConsec[s.code]=s.maxConsecutive});
@@ -740,6 +748,21 @@ function validateSchedule(planId,year,month){var v=[],plan=state.plans.find(func
     // R5: Monthly work bounds
     // maxMonthlyWork removed
     if(rules.minMonthlyWork>0&&workCount<rules.minMonthlyWork)v.push({empId:emp.id,empName:emp.name,date:dateKey(year,month,1),msg:'R5:上班'+workCount+'<下限'+rules.minMonthlyWork+'天'});
+  }
+  // R7: Inter-shift rest gap >= 12 hours
+  for(var ei=0;ei<emps.length;ei++){
+    var emp=emps[ei];
+    for(var d=1;d<numDays;d++){
+      var dk1=dateKey(year,month,d),dk2=dateKey(year,month,d+1);
+      var c1=sched[dk1]&&sched[dk1][emp.id]?sched[dk1][emp.id]:null;
+      var c2=sched[dk2]&&sched[dk2][emp.id]?sched[dk2][emp.id]:null;
+      if(!c1||!c2||c1==='R'||c2==='R')continue;
+      var sh1=getShift(c1);var sh2=getShift(c2);
+      if(!sh1||!sh2)continue;
+      var endTime=parseTime(sh1.end||'18:00');var startTime=parseTime(sh2.start||'09:00');
+      var gap=startTime-endTime;if(gap<0)gap+=1440; // minutes
+      if(gap<=720)v.push({empId:emp.id,empName:emp.name,date:dk2,msg:'R7:'+sh1.name+'→'+sh2.name+'间隔'+(gap/60).toFixed(1)+'h，需>12h'});
+    }
   }
   var merged=[];var seen={};for(var i=0;i<v.length;i++){var key=v[i].empId+"_"+v[i].msg.split(":")[0];if(!seen[key]){seen[key]=1;merged.push(v[i])}}return merged;
 }
